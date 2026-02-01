@@ -1,0 +1,10 @@
+scrape_interval = "10s"
+mgrctl_path = "/path/to/mgrctl-test"
+recipient = "admin@example.ru"
+
+[smtp]
+    username = "admin@example.ru"
+    password = "hello-world"
+    host = "mail.example.ru"
+    port = 465
+    from = "admin@example.ru"
