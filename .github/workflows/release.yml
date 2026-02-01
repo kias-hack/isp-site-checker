@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      
+      - name: Run tests
+        run: go test -v ./...
+      
+      - name: Build
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o isp-site-checker-linux-amd64 ./cmd/app
+          GOOS=linux GOARCH=arm64 go build -o isp-site-checker-linux-arm64 ./cmd/app
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            isp-site-checker-linux-amd64
+            isp-site-checker-linux-arm64
