@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/smtp"
 	"strings"
 	"sync"
 	"time"
@@ -15,7 +14,6 @@ import (
 	"github.com/kias-hack/isp-site-checker/internal/isp"
 )
 
-var sendMail = smtp.SendMail
 var getDomains = isp.GetWebDomain
 
 type CheckInfo struct {
@@ -26,6 +24,12 @@ type CheckInfo struct {
 	Err        error
 }
 
+type NotificationSender interface {
+	Send(context context.Context) error
+	Error(domain string, result string)
+	Success(domain string)
+}
+
 type Checker struct {
 	config *config.Config
 	ctx    context.Context
@@ -33,23 +37,21 @@ type Checker struct {
 	cancel context.CancelFunc
 	wg     *sync.WaitGroup
 
-	resultPipe chan CheckInfo
+	resultPipe   chan CheckInfo
+	notifySender NotificationSender
 }
 
-func NewChecker(config *config.Config) *Checker {
+func NewChecker(config *config.Config, notifySender NotificationSender) *Checker {
 	ctx, cncl := context.WithCancel(context.Background())
 
-	sendMail = func(addr string, a smtp.Auth, from string, to []string, msg []byte) error {
-		return nil
-	}
-
 	return &Checker{
-		ctx:        ctx,
-		cancel:     cncl,
-		config:     config,
-		wg:         &sync.WaitGroup{},
-		resultPipe: make(chan CheckInfo, 10),
-		work:       false,
+		ctx:          ctx,
+		cancel:       cncl,
+		config:       config,
+		wg:           &sync.WaitGroup{},
+		resultPipe:   make(chan CheckInfo),
+		work:         false,
+		notifySender: notifySender,
 	}
 }
 
@@ -62,6 +64,7 @@ func (c *Checker) notifyWorker() {
 			logger := slog.With("domain", result.Domain, "err", result.Err, "status", result.StatusCode)
 
 			if result.Err == nil && result.StatusCode == http.StatusForbidden {
+				c.notifySender.Success(result.Domain)
 				logger.Debug("получен результат, пропускаю")
 				continue
 			}
@@ -84,20 +87,7 @@ func (c *Checker) notifyWorker() {
 				msg.WriteString(fmt.Sprintf("Код ответа - %d", result.StatusCode))
 			}
 
-			auth := smtp.PlainAuth("", c.config.SMTP.Username, c.config.SMTP.Password, c.config.SMTP.Host)
-			addr := fmt.Sprintf("%s:%d", c.config.SMTP.Host, c.config.SMTP.Port)
-
-			logger.Debug("отправляю письмо")
-
-			// TODO доработать отправку почты
-			err := sendMail(addr, auth, c.config.SMTP.From, []string{c.config.Recipient}, []byte(msg.String()))
-
-			if err != nil {
-				logger.Error("ошибка отправки по SMTP", "err", err)
-				continue
-			}
-
-			logger.Debug("письмо отправлено")
+			c.notifySender.Error(result.Domain, msg.String())
 
 			logger.Info("обработан результат по домену")
 		case <-c.ctx.Done():
@@ -108,12 +98,13 @@ func (c *Checker) notifyWorker() {
 
 func (c *Checker) Start() error {
 	if c.work {
+		slog.Debug("нечего отправлять")
 		return errors.New("процесс уже запущен")
 	}
 
 	c.work = true
 
-	c.wg.Add(2)
+	c.wg.Add(3)
 
 	go c.notifyWorker()
 
@@ -127,6 +118,29 @@ func (c *Checker) Start() error {
 			select {
 			case <-ticker.C:
 				c.checkDomains()
+			case <-c.ctx.Done():
+				c.work = false
+				return
+			}
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(c.config.ScrapeInterval)
+
+		defer ticker.Stop()
+		defer c.wg.Done()
+
+		for {
+			select {
+			case <-ticker.C:
+				ctx, cancel := context.WithTimeout(c.ctx, 2*time.Second)
+				defer cancel()
+
+				slog.Debug("отправляю уведомление")
+				if err := c.notifySender.Send(ctx); err != nil {
+					slog.Error("ошибка отправки увдомлений", "err", err)
+				}
 			case <-c.ctx.Done():
 				c.work = false
 				return
@@ -164,15 +178,17 @@ func (c *Checker) checkDomains() {
 		return
 	}
 
+	wg := &sync.WaitGroup{}
+
 	for _, domainInfo := range domains {
 		if !domainInfo.Active {
 			slog.Debug("домен отключен", "domain", domainInfo.Name, "owner", domainInfo.Owner)
 			continue
 		}
 
-		c.wg.Add(1)
+		wg.Add(1)
 		go func(domainInfo *isp.WebDomain) {
-			defer c.wg.Done()
+			defer wg.Done()
 
 			logger := slog.With("id", domainInfo.Id, "name", domainInfo.Name, "addr", domainInfo.IPAddr)
 
@@ -200,7 +216,7 @@ func (c *Checker) checkDomains() {
 					logger.Debug("произошла ошибка при подключении к серверу", "domain", domain)
 					result.Err = err
 				} else {
-					logger.Debug("получен статус от сервера", "domain", domain)
+					logger.Debug("получен статус от сервера", "domain", domain, "status", resp.StatusCode)
 					result.StatusCode = resp.StatusCode
 				}
 
@@ -209,5 +225,17 @@ func (c *Checker) checkDomains() {
 				logger.Debug("отправлен результат", "domain", domain)
 			}
 		}(domainInfo)
+	}
+
+	done := make(chan struct{})
+
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-c.ctx.Done():
 	}
 }

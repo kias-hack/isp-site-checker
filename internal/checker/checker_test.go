@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"net/smtp"
 	"net/url"
 	"os"
 	"runtime"
@@ -18,12 +17,16 @@ import (
 	"github.com/kias-hack/isp-site-checker/internal/config"
 	"github.com/kias-hack/isp-site-checker/internal/isp"
 	"github.com/stretchr/testify/assert"
+	gomock "go.uber.org/mock/gomock"
 )
 
 func TestNewChecker(t *testing.T) {
+	ctrl, sender := newMockSender(t)
+	defer ctrl.Finish()
+
 	chk := NewChecker(&config.Config{
 		ScrapeInterval: time.Second,
-	})
+	}, sender)
 
 	assert.NotNil(t, chk.cancel)
 	assert.NotNil(t, chk.config)
@@ -34,9 +37,12 @@ func TestNewChecker(t *testing.T) {
 }
 
 func TestCheckerStart(t *testing.T) {
+	ctrl, sender := newMockSender(t)
+	defer ctrl.Finish()
+
 	chk := NewChecker(&config.Config{
 		ScrapeInterval: time.Second,
-	})
+	}, sender)
 
 	startGoroutine := runtime.NumGoroutine()
 
@@ -44,7 +50,7 @@ func TestCheckerStart(t *testing.T) {
 		t.Fatalf("ошибка при старте сервиса %v", err)
 	}
 
-	assert.Equal(t, 2, runtime.NumGoroutine()-startGoroutine)
+	assert.Equal(t, 3, runtime.NumGoroutine()-startGoroutine)
 
 	assert.True(t, chk.work)
 
@@ -52,9 +58,12 @@ func TestCheckerStart(t *testing.T) {
 }
 
 func TestCheckerRetryStart(t *testing.T) {
+	ctrl, sender := newMockSender(t)
+	defer ctrl.Finish()
+
 	chk := NewChecker(&config.Config{
 		ScrapeInterval: time.Second,
-	})
+	}, sender)
 	defer chk.Stop(t.Context())
 
 	chk.Start()
@@ -63,9 +72,12 @@ func TestCheckerRetryStart(t *testing.T) {
 }
 
 func TestCheckerStop(t *testing.T) {
+	ctrl, sender := newMockSender(t)
+	defer ctrl.Finish()
+
 	chk := NewChecker(&config.Config{
 		ScrapeInterval: time.Second,
-	})
+	}, sender)
 
 	startGoroutine := runtime.NumGoroutine()
 	chk.Start()
@@ -78,9 +90,12 @@ func TestCheckerStop(t *testing.T) {
 }
 
 func TestCheckerStopWithTimeout(t *testing.T) {
+	ctrl, sender := newMockSender(t)
+	defer ctrl.Finish()
+
 	chk := NewChecker(&config.Config{
 		ScrapeInterval: time.Second,
-	})
+	}, sender)
 	chk.Start()
 
 	chk.wg.Add(1)
@@ -98,19 +113,11 @@ func TestCheckerStopWithTimeout(t *testing.T) {
 }
 
 func TestCheckerNotification(t *testing.T) {
-	chk := NewChecker(&config.Config{
-		ScrapeInterval: time.Second,
-	})
-	chk.Start()
-	defer chk.Stop(t.Context())
 	wg := &sync.WaitGroup{}
-	defer func() {
-		sendMail = smtp.SendMail
-	}()
 
 	testCases := []struct {
 		name     string
-		dataFunc func() (CheckInfo, []byte)
+		dataFunc func() (CheckInfo, string)
 	}{
 		{
 			name:     "результат с ошибкой",
@@ -125,14 +132,22 @@ func TestCheckerNotification(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			result, expected := testCase.dataFunc()
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			mockSender := NewMockNotificationSender(ctrl)
+			mockSender.EXPECT().Error(gomock.Eq(result.Domain), expected).Times(1).Do(func(_, _ string) {
+				wg.Done()
+			})
+			mockSender.EXPECT().Send(gomock.Any()).Return(nil).AnyTimes()
+
 			wg.Add(1)
 
-			//mock sendMail
-			sendMail = func(_ string, _ smtp.Auth, _ string, _ []string, msg []byte) error {
-				assert.Equal(t, expected, msg)
-				wg.Done()
-				return nil
-			}
+			chk := NewChecker(&config.Config{
+				ScrapeInterval: time.Second,
+			}, mockSender)
+			chk.Start()
+			defer chk.Stop(t.Context())
 
 			// отправляем результат
 			chk.resultPipe <- result
@@ -156,20 +171,15 @@ func TestCheckerNotification(t *testing.T) {
 }
 
 func TestCheckerNotificationValidStatus(t *testing.T) {
+	ctrl, sender := newMockSender(t)
+	defer ctrl.Finish()
+
 	chk := NewChecker(&config.Config{
 		ScrapeInterval: time.Second,
-	})
-	chk.Start()
-	defer func() {
-		sendMail = smtp.SendMail
-	}()
-	defer chk.Stop(t.Context())
+	}, sender)
 
-	//mock sendMail
-	sendMail = func(_ string, _ smtp.Auth, _ string, _ []string, msg []byte) error {
-		t.Fatalf("было отправлено уведомление, не должно быть так")
-		return nil
-	}
+	chk.Start()
+	defer chk.Stop(t.Context())
 
 	result := CheckInfo{
 		Domain:     "example.com",
@@ -186,7 +196,7 @@ func TestCheckerNotificationValidStatus(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 }
 
-func getGetTestDataForNotifyWithError() (CheckInfo, []byte) {
+func getGetTestDataForNotifyWithError() (CheckInfo, string) {
 	result := CheckInfo{
 		Domain:    "example.com",
 		Owner:     "root",
@@ -202,10 +212,10 @@ func getGetTestDataForNotifyWithError() (CheckInfo, []byte) {
 	expected.WriteString("\n")
 	expected.WriteString(fmt.Sprintf("Произошла ошибка - %s", result.Err.Error()))
 
-	return result, []byte(expected.String())
+	return result, expected.String()
 }
 
-func getGetTestDataForNotifyWithStatus() (CheckInfo, []byte) {
+func getGetTestDataForNotifyWithStatus() (CheckInfo, string) {
 	result := CheckInfo{
 		Domain:     "example.com",
 		Owner:      "root",
@@ -221,13 +231,16 @@ func getGetTestDataForNotifyWithStatus() (CheckInfo, []byte) {
 	expected.WriteString("\n")
 	expected.WriteString(fmt.Sprintf("Код ответа - %d", result.StatusCode))
 
-	return result, []byte(expected.String())
+	return result, expected.String()
 }
 
 func TestCheckerCheckSendRequest(t *testing.T) {
+	ctrl, sender := newMockSender(t)
+	defer ctrl.Finish()
+
 	chk := NewChecker(&config.Config{
 		ScrapeInterval: time.Second,
-	})
+	}, sender)
 	defer chk.Stop(t.Context())
 
 	wg := &sync.WaitGroup{}
@@ -275,12 +288,7 @@ func TestCheckerCheckSendRequest(t *testing.T) {
 		}, nil
 	}
 
-	sendMail = func(addr string, a smtp.Auth, from string, to []string, msg []byte) error {
-		return nil
-	}
-
 	defer func() {
-		sendMail = smtp.SendMail
 		readDir = os.ReadDir
 		getDomains = isp.GetWebDomain
 	}()
@@ -302,4 +310,85 @@ func TestCheckerCheckSendRequest(t *testing.T) {
 	case <-exit:
 	}
 
+}
+
+func TestCheckerCheckThatSendResultCalls(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	sender := NewMockNotificationSender(ctrl)
+	defer ctrl.Finish()
+
+	wg := &sync.WaitGroup{}
+
+	wg.Add(2)
+
+	sender.EXPECT().Send(gomock.Any()).Times(1).DoAndReturn(func(_ context.Context) error {
+		wg.Done()
+		return nil
+	})
+	sender.EXPECT().Error(gomock.Any(), gomock.Any()).Times(1).Do(func(_, _ string) {
+		wg.Done()
+	})
+
+	chk := NewChecker(&config.Config{
+		ScrapeInterval: time.Second,
+	}, sender)
+	defer chk.Stop(t.Context())
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	serverURL, _ := url.Parse(server.URL)
+
+	getDomains = func(_ string) ([]*isp.WebDomain, error) {
+		return []*isp.WebDomain{
+			{
+				Id:      1,
+				Name:    "example.com",
+				Owner:   "root",
+				Docroot: "/",
+				Active:  true,
+				IPAddr:  serverURL.Hostname(),
+				Port:    serverURL.Port(),
+			},
+		}, nil
+	}
+
+	readDir = func(name string) ([]os.DirEntry, error) {
+		return []os.DirEntry{}, nil
+	}
+
+	defer func() {
+		readDir = os.ReadDir
+		getDomains = isp.GetWebDomain
+	}()
+
+	chk.Start()
+
+	exit := make(chan struct{})
+
+	go func() {
+		wg.Wait()
+		close(exit)
+	}()
+
+	timer := time.NewTimer(2 * time.Second)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		t.Fatalf("таймаут, задачи не зевершены")
+	case <-exit:
+	}
+
+}
+
+// newMockSender создаёт мок с дефолтными ожиданиями (Error/Success — любое кол-во, Send — nil).
+func newMockSender(t *testing.T) (*gomock.Controller, *MockNotificationSender) {
+	ctrl := gomock.NewController(t)
+	mock := NewMockNotificationSender(ctrl)
+	mock.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
+	mock.EXPECT().Success(gomock.Any()).AnyTimes()
+	mock.EXPECT().Send(gomock.Any()).Return(nil).AnyTimes()
+	return ctrl, mock
 }

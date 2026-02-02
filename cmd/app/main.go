@@ -10,6 +10,7 @@ import (
 
 	"github.com/kias-hack/isp-site-checker/internal/checker"
 	"github.com/kias-hack/isp-site-checker/internal/config"
+	"github.com/kias-hack/isp-site-checker/internal/notify"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
 
-	chk := checker.NewChecker(cfg)
+	chk := checker.NewChecker(cfg, notify.NewSender(cfg))
 
 	if err := chk.Start(); err != nil {
 		panic(err)
