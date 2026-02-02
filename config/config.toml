@@ -1,5 +1,5 @@
 scrape_interval = "10s"
-mgrctl_path = "/path/to/mgrctl-test"
+mgrctl_path = "/home/kias/go/isp-site-checker/mgrctl-test"
 recipient = "admin@example.ru"
 
 [smtp]

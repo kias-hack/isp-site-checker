@@ -19,11 +19,13 @@ type Config struct {
 	Recipient string `toml:"recipient"`
 
 	SMTP struct {
-		Host     string `toml:"host"`
-		Port     int    `toml:"port"`
-		Username string `toml:"username"`
-		Password string `toml:"password"`
-		From     string `toml:"from"`
+		Host         string        `toml:"host"`
+		Port         int           `toml:"port"`
+		Username     string        `toml:"username"`
+		Password     string        `toml:"password"`
+		From         string        `toml:"from"`
+		SendInterval time.Duration `toml:"send_interval"`
+		SendTimeout  time.Duration `toml:"send_timeout"`
 	}
 }
 
@@ -66,6 +68,18 @@ func LoadConfig() (*Config, error) {
 
 	if cfg.SMTP.From == "" || cfg.SMTP.Host == "" || cfg.SMTP.Password == "" || cfg.SMTP.Port <= 0 || cfg.SMTP.Username == "" {
 		return nil, fmt.Errorf("проверьте настройки SMTP")
+	}
+
+	if cfg.SMTP.SendInterval.Seconds() == 0 {
+		cfg.SMTP.SendInterval = time.Minute * 1
+	}
+
+	if cfg.SMTP.SendTimeout.Seconds() == 0 {
+		cfg.SMTP.SendTimeout = time.Second * 2
+	}
+
+	if cfg.SMTP.SendInterval.Seconds()-cfg.SMTP.SendTimeout.Seconds() <= 2 {
+		return nil, fmt.Errorf("интервалом должен быть больше таймаута более чем на 2 секунды")
 	}
 
 	return cfg, nil

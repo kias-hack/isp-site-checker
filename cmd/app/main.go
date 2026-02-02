@@ -24,7 +24,7 @@ func main() {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
 
-	chk := checker.NewChecker(cfg, notify.NewSender(cfg))
+	chk := checker.NewChecker(cfg, notify.NewNotifier(cfg))
 
 	if err := chk.Start(); err != nil {
 		slog.Error("произошла ошибка запуска приложения", "err", err)
