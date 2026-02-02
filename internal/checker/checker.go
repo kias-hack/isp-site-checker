@@ -42,11 +42,7 @@ type Checker struct {
 }
 
 func NewChecker(config *config.Config, notifySender NotificationSender) *Checker {
-	ctx, cncl := context.WithCancel(context.Background())
-
 	return &Checker{
-		ctx:          ctx,
-		cancel:       cncl,
 		config:       config,
 		wg:           &sync.WaitGroup{},
 		resultPipe:   make(chan CheckInfo),
@@ -102,8 +98,10 @@ func (c *Checker) Start() error {
 		return errors.New("процесс уже запущен")
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	c.ctx = ctx
+	c.cancel = cancel
 	c.work = true
-
 	c.wg.Add(3)
 
 	go c.notifyWorker()

@@ -14,7 +14,11 @@ import (
 )
 
 func main() {
-	cfg := config.LoadConfig()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		slog.Error("при конфигурировании приложения произошла ошибка", "err", err)
+		os.Exit(1)
+	}
 
 	if cfg.DebugMode {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
@@ -23,7 +27,8 @@ func main() {
 	chk := checker.NewChecker(cfg, notify.NewSender(cfg))
 
 	if err := chk.Start(); err != nil {
-		panic(err)
+		slog.Error("произошла ошибка запуска приложения", "err", err)
+		os.Exit(1)
 	}
 
 	sig := make(chan os.Signal, 1)
@@ -39,5 +44,6 @@ func main() {
 
 	if err := chk.Stop(ctx); err != nil {
 		slog.Info("при завершении произошла ошибка", "err", err)
+		os.Exit(1)
 	}
 }

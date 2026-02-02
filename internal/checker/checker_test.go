@@ -28,9 +28,7 @@ func TestNewChecker(t *testing.T) {
 		ScrapeInterval: time.Second,
 	}, sender)
 
-	assert.NotNil(t, chk.cancel)
 	assert.NotNil(t, chk.config)
-	assert.NotNil(t, chk.ctx)
 	assert.NotNil(t, chk.resultPipe)
 	assert.NotNil(t, chk.wg)
 	assert.False(t, chk.work)

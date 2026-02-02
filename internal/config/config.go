@@ -27,7 +27,7 @@ type Config struct {
 	}
 }
 
-func LoadConfig() *Config {
+func LoadConfig() (*Config, error) {
 	slog.Info("start create config")
 
 	cfg := &Config{}
@@ -45,11 +45,11 @@ func LoadConfig() *Config {
 
 	bytes, err := os.ReadFile(configPath)
 	if err != nil {
-		panic(fmt.Errorf("ошибка чтения файла с конфигурацией: %s", err))
+		return nil, fmt.Errorf("ошибка чтения файла с конфигурацией: %s", err)
 	}
 
 	if err := toml.Unmarshal(bytes, cfg); err != nil {
-		panic(fmt.Errorf("ошибка декодирования конфигурации: %s", err))
+		return nil, fmt.Errorf("ошибка декодирования конфигурации: %s", err)
 	}
 
 	if cfg.ScrapeInterval.Seconds() == 0 {
@@ -61,12 +61,12 @@ func LoadConfig() *Config {
 	}
 
 	if cfg.Recipient == "" {
-		panic("получатель в настройках обязателен")
+		return nil, fmt.Errorf("получатель в настройках обязателен")
 	}
 
 	if cfg.SMTP.From == "" || cfg.SMTP.Host == "" || cfg.SMTP.Password == "" || cfg.SMTP.Port <= 0 || cfg.SMTP.Username == "" {
-		panic("проверьте настройки SMTP")
+		return nil, fmt.Errorf("проверьте настройки SMTP")
 	}
 
-	return cfg
+	return cfg, nil
 }

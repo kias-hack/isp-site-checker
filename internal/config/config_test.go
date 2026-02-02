@@ -41,8 +41,9 @@ from = "test@test.tu"
 	os.Args = []string{"cmd", "-config", configPath}
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
-	cfg := LoadConfig()
+	cfg, err := LoadConfig()
 
+	assert.Nil(t, err)
 	assert.Equal(t, "/usr/local/mgr5/sbin/mgrctl", cfg.MgrCtlPath)
 	assert.Equal(t, "kias@gendalf.ru", cfg.Recipient)
 	assert.Equal(t, "1m0s", cfg.ScrapeInterval.String())
@@ -83,8 +84,9 @@ from = "test@test.tu"
 	os.Args = []string{"cmd", "-config", configPath}
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
-	cfg := LoadConfig()
+	cfg, err := LoadConfig()
 
+	assert.Nil(t, err)
 	assert.Equal(t, "/usr/local/mgr5/sbin/mgrctl", cfg.MgrCtlPath)
 	assert.Equal(t, "kias@gendalf.ru", cfg.Recipient)
 	assert.Equal(t, "1m0s", cfg.ScrapeInterval.String())
@@ -123,9 +125,8 @@ from = "test@test.tu"
 	os.Args = []string{"cmd", "-config", configPath}
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
-	assert.Panics(t, func() {
-		LoadConfig()
-	})
+	_, err = LoadConfig()
+	assert.Error(t, err)
 }
 
 func TestLoadConfig_EmptySMTP(t *testing.T) {
@@ -151,7 +152,6 @@ recipient = "test@test.ru"
 	os.Args = []string{"cmd", "-config", configPath}
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
-	assert.Panics(t, func() {
-		LoadConfig()
-	})
+	_, err = LoadConfig()
+	assert.Error(t, err)
 }
