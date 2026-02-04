@@ -8,7 +8,7 @@ import (
 	"github.com/kias-hack/isp-site-checker/internal/isp"
 )
 
-func sсheduler(ctx context.Context, wg *sync.WaitGroup, ticker <-chan struct{}, taskPipe chan<- *Task, getDomains isp.GetWebDomainsFunc) {
+func scheduler(ctx context.Context, wg *sync.WaitGroup, ticker <-chan struct{}, taskPipe chan<- *Task, getDomains isp.GetWebDomainsFunc) {
 	defer wg.Done()
 
 	for {

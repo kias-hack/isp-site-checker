@@ -84,7 +84,7 @@ func (c *Checker) Start() error {
 		}
 	}()
 
-	go sсheduler(ctx, c.wg, c.schedTicker, c.taskPipe, c.getDomains)
+	go scheduler(ctx, c.wg, c.schedTicker, c.taskPipe, c.getDomains)
 
 	for n := range workerPoolCountDefault {
 		c.wg.Add(1)
