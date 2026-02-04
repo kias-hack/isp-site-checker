@@ -8,4 +8,5 @@ type WebDomain struct {
 	Active  bool
 	IPAddr  string
 	Port    string
+	Sites   []string
 }

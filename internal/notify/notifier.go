@@ -19,8 +19,8 @@ type Result struct {
 }
 
 type Notifier interface {
-	Success(domain string, message string)
-	Fail(domain string, message string)
+	Success(site string, message string)
+	Fail(site string, message string)
 }
 
 func NewNotifier(cfg *config.Config) Notifier {

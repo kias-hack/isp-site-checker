@@ -1,21 +1,28 @@
 package isp
 
 import (
+	"errors"
+	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
+var readDir = os.ReadDir
+
 const (
 	MGR_CTL_PATH_DEFAULT = "/usr/local/mgr5/sbin/mgrctl"
 	MGR_WEBDOMAIN_REGEX  = `id=(?P<id>\d+)\s+name=(?P<name>[\w\.\-]+)\s+owner=(?P<owner>\w+)\s+docroot=(?P<docroot>[\w/\.\-]+)\s+(?:secure=(?P<secure>\w+)\s+)?php=(?P<php>.*?)\s+php_mode=(?P<php_mode>\w+)\s+php_version=(?P<php_version>[\d\.]+ \([^)]+\))\s+handler=(?P<handler>.*?)\s+active=(?P<active>\w+)\s+analyzer=(?P<analyzer>\w+)\s+ipaddr=(?P<ipaddr>[\d\.]+)\s+webscript_status=(?P<webscript_status>\w*)\s+database=(?P<database>[\w_\.\-]+)\s+(?P<ssl_status>[\w_]+)=?`
 )
 
+type GetWebDomainsFunc func() ([]*WebDomain, error)
+
 var execCommand = exec.Command
 
-func GetWebDomain(mgrctlPath string) ([]*WebDomain, error) {
+func GetWebDomains(mgrctlPath string) ([]*WebDomain, error) {
 	cmd := execCommand(mgrctlPath, "-m", "ispmgr", "webdomain")
 
 	output, err := cmd.Output()
@@ -72,6 +79,8 @@ func GetWebDomain(mgrctlPath string) ([]*WebDomain, error) {
 			}
 		}
 
+		domain.Sites = findSubdomain(domain.Owner, domain.Name)
+
 		result = append(result, domain)
 	}
 
@@ -87,4 +96,29 @@ func setIntVal(target *int, value string) error {
 	*target = val
 
 	return nil
+}
+
+func findSubdomain(owner string, domain string) []string {
+	path := fmt.Sprintf("/var/www/%s/data/www/", owner)
+
+	result := []string{domain}
+
+	domain = "." + domain
+
+	entries, err := readDir(path)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		panic(fmt.Errorf("unknown error while read dir %s: %w", path, err))
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() || entry.Name() == domain {
+			continue
+		}
+
+		if strings.HasSuffix(entry.Name(), domain) {
+			result = append(result, entry.Name())
+		}
+	}
+
+	return result
 }
