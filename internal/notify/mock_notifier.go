@@ -40,25 +40,25 @@ func (m *MockNotifier) EXPECT() *MockNotifierMockRecorder {
 }
 
 // Fail mocks base method.
-func (m *MockNotifier) Fail(domain, message string) {
+func (m *MockNotifier) Fail(site, message string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Fail", domain, message)
+	m.ctrl.Call(m, "Fail", site, message)
 }
 
 // Fail indicates an expected call of Fail.
-func (mr *MockNotifierMockRecorder) Fail(domain, message any) *gomock.Call {
+func (mr *MockNotifierMockRecorder) Fail(site, message any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fail", reflect.TypeOf((*MockNotifier)(nil).Fail), domain, message)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fail", reflect.TypeOf((*MockNotifier)(nil).Fail), site, message)
 }
 
 // Success mocks base method.
-func (m *MockNotifier) Success(domain, message string) {
+func (m *MockNotifier) Success(site, message string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Success", domain, message)
+	m.ctrl.Call(m, "Success", site, message)
 }
 
 // Success indicates an expected call of Success.
-func (mr *MockNotifierMockRecorder) Success(domain, message any) *gomock.Call {
+func (mr *MockNotifierMockRecorder) Success(site, message any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Success", reflect.TypeOf((*MockNotifier)(nil).Success), domain, message)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Success", reflect.TypeOf((*MockNotifier)(nil).Success), site, message)
 }

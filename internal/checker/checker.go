@@ -35,6 +35,7 @@ type Checker struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     *sync.WaitGroup
+	work   bool
 
 	taskPipe    chan *Task
 	resultPipe  chan *Task
@@ -51,6 +52,7 @@ func NewChecker(config *config.Config, notifier notify.Notifier, getDomains isp.
 		wg:         &sync.WaitGroup{},
 		notifier:   notifier,
 		getDomains: getDomains,
+		work:       false,
 	}
 }
 
@@ -91,10 +93,15 @@ func (c *Checker) Start() error {
 		go worker(c.ctx, c.wg, c.taskPipe, c.resultPipe, n)
 	}
 
+	c.work = true
+
 	return nil
 }
 
 func (c *Checker) Stop(ctx context.Context) error {
+	if !c.work {
+		return nil
+	}
 	defer func() {
 		close(c.taskPipe)
 		close(c.resultPipe)
@@ -111,8 +118,10 @@ func (c *Checker) Stop(ctx context.Context) error {
 
 	select {
 	case <-waitChan:
+		c.work = false
 		return nil
 	case <-ctx.Done():
 		return fmt.Errorf("контекст завершился пока я ждал завершения чекера %w", ctx.Err())
 	}
+
 }

@@ -33,7 +33,6 @@ func resultHandler(ctx context.Context, wg *sync.WaitGroup, resultPipe <-chan *T
 			msg.WriteString(fmt.Sprintf("Сайт: %s\n", task.Site))
 			msg.WriteString(fmt.Sprintf("Владелец: %s\n", task.Owner))
 			msg.WriteString(fmt.Sprintf("Время: %s\n", task.Result.Timestamp))
-			msg.WriteString("\n")
 
 			if task.Result.Err != nil {
 				logger.Debug("ошибка в результате", "err", task.Result.Err)
