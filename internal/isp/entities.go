@@ -5,7 +5,6 @@ type WebDomain struct {
 	Name    string
 	Owner   string
 	Docroot string
-	Active  bool
 	IPAddr  string
 	Port    string
 	Sites   []string

@@ -21,25 +21,22 @@ func TestGetWebDomain(t *testing.T) {
 		owner      string
 		docroot    string
 		ipAddr     string
-		active     bool
 	}{
 		{
-			name:       "активный домен с цифрами",
+			name:       "домен с цифрами",
 			id:         1,
 			domainName: "123owner.owner-oner.er",
 			owner:      "owner",
 			docroot:    "/var/www/owner/data/www/123owner.owner-oner.er",
 			ipAddr:     "127.0.0.1",
-			active:     true,
 		},
 		{
-			name:       "неактивный домен",
+			name:       "домен без цифр",
 			id:         2,
-			domainName: "123owner.owner1-oner.er",
+			domainName: "example.com",
 			owner:      "owner1",
-			docroot:    "/var/www/owner1/data/www/123owner.owner1-oner.er",
+			docroot:    "/var/www/owner1/data/www/example.com",
 			ipAddr:     "192.23.3.3",
-			active:     false,
 		},
 	}
 
@@ -47,18 +44,13 @@ func TestGetWebDomain(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Мокаем команду mgrctl
 			execCommand = func(path string, args ...string) *exec.Cmd {
-				activeStr := "off"
-				if tc.active {
-					activeStr = "on"
-				}
-
 				result := fmt.Sprintf(
 					webDomainLineTemplate,
 					tc.id,
 					tc.domainName,
 					tc.owner,
 					tc.docroot,
-					activeStr,
+					"on",
 					tc.ipAddr,
 				)
 
@@ -102,11 +94,39 @@ func TestGetWebDomain(t *testing.T) {
 			if domain.IPAddr != tc.ipAddr {
 				t.Errorf("IPAddr: получено %q, ожидается %q", domain.IPAddr, tc.ipAddr)
 			}
-
-			if domain.Active != tc.active {
-				t.Errorf("Active: получено %v, ожидается %v", domain.Active, tc.active)
-			}
 		})
+	}
+}
+
+func TestGetWebDomainThatNotActiveWillBeIgnored(t *testing.T) {
+	// Мокаем команду mgrctl
+	execCommand = func(path string, args ...string) *exec.Cmd {
+		result := fmt.Sprintf(
+			webDomainLineTemplate,
+			1,
+			"example.com",
+			"root",
+			"/var/www/test",
+			"off",
+			"127.0.0.0.1",
+		)
+
+		return exec.Command("echo", result)
+	}
+
+	defer func() {
+		execCommand = exec.Command
+	}()
+
+	// Выполняем функцию
+	domains, err := GetWebDomains("mgrctl")
+	if err != nil {
+		t.Fatalf("неожиданная ошибка: %v", err)
+	}
+
+	// Проверяем количество доменов
+	if len(domains) != 0 {
+		t.Fatalf("ошибка, неативный домен был возвращен")
 	}
 }
 

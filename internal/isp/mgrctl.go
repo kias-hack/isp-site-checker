@@ -55,6 +55,8 @@ func GetWebDomains(mgrctlPath string) ([]*WebDomain, error) {
 			Port: "80",
 		}
 
+		skip := false
+
 		for i, name := range names {
 			switch name {
 			case "id":
@@ -69,7 +71,7 @@ func GetWebDomains(mgrctlPath string) ([]*WebDomain, error) {
 			case "docroot":
 				domain.Docroot = match[i]
 			case "active":
-				domain.Active = match[i] == "on"
+				skip = match[i] != "on"
 			case "ipaddr":
 				domain.IPAddr = match[i]
 			case "ssl_status":
@@ -77,6 +79,10 @@ func GetWebDomains(mgrctlPath string) ([]*WebDomain, error) {
 					domain.Port = "443"
 				}
 			}
+		}
+
+		if skip {
+			continue
 		}
 
 		domain.Sites = findSubdomain(domain.Owner, domain.Name)
