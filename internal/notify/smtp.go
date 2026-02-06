@@ -1,130 +1,130 @@
 package notify
 
-// import (
-// 	"context"
-// 	"fmt"
-// 	"log/slog"
-// 	"net/smtp"
-// 	"strings"
-// 	"sync"
+import (
+	"context"
+	"encoding/base64"
+	"fmt"
+	"mime"
+	"net/mail"
+	"net/smtp"
+	"strings"
 
-// 	"github.com/kias-hack/isp-site-checker/internal/checker"
-// 	"github.com/kias-hack/isp-site-checker/internal/config"
-// )
+	"golang.org/x/net/idna"
+)
 
-// // TODO доработать отправку, учесть ошибку и повторно пытаться отослать сообщение по домену
+type SmtpSendMailFunc func(addr string, a smtp.Auth, from string, to []string, msg []byte) error
 
-// type domainStatus struct {
-// 	Domain string
-// 	Fail   bool
-// }
+type Mail struct {
+	From    string
+	To      []string
+	Subject string
+	Message string
+}
 
-// type SMTPSender struct {
-// 	host     string
-// 	port     int
-// 	from     string
-// 	to       []string
-// 	username string
-// 	password string
-// 	mu       *sync.Mutex
+type MailSender interface {
+	Send(ctx context.Context, mail *Mail) error
+}
 
-// 	msg            strings.Builder
-// 	domainStatuses map[string]*domainStatus
-// }
+func NewMailSender(host string, port string, username string, password string, smtpFunc SmtpSendMailFunc) MailSender {
+	return &mailSender{
+		addr:     fmt.Sprintf("%s:%s", host, port),
+		auth:     smtp.PlainAuth("", username, password, host),
+		smtpFunc: smtpFunc,
+	}
+}
 
-// var smtpSendMail = smtp.SendMail
+type mailSender struct {
+	addr     string
+	auth     smtp.Auth
+	smtpFunc SmtpSendMailFunc
+}
 
-// func NewSender(cfg *config.Config) checker.NotificationSender {
-// 	return &SMTPSender{
-// 		host:           cfg.SMTP.Host,
-// 		port:           cfg.SMTP.Port,
-// 		username:       cfg.SMTP.Username,
-// 		password:       cfg.SMTP.Password,
-// 		to:             []string{cfg.Recipient},
-// 		from:           cfg.SMTP.From,
-// 		mu:             &sync.Mutex{},
-// 		domainStatuses: make(map[string]*domainStatus),
-// 	}
-// }
+func (m *mailSender) Send(ctx context.Context, mail *Mail) error {
+	body, err := buildMailBody(mail)
+	if err != nil {
+		return fmt.Errorf("ошибка при формировании тела письма: %w", err)
+	}
 
-// func (s *SMTPSender) Send(ctx context.Context) error {
-// 	s.mu.Lock()
-// 	defer s.mu.Unlock()
+	errChan := make(chan error)
 
-// 	if s.msg.Len() == 0 {
-// 		slog.Debug("нечего отправлять")
-// 		return nil
-// 	}
+	go func() {
+		errChan <- m.smtpFunc(m.addr, m.auth, mail.From, mail.To, []byte(body))
+		close(errChan)
+	}()
 
-// 	output := make(chan error)
-// 	defer close(output)
+	select {
+	case err := <-errChan:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
 
-// 	go func() {
-// 		var body strings.Builder
+func buildMailBody(email *Mail) (string, error) {
+	builder := strings.Builder{}
 
-// 		body.WriteString(fmt.Sprintf("To: %s\r\n", strings.Join(s.to, ", ")))
-// 		body.WriteString(fmt.Sprintf("Subject: %s\r\n", "Результат проверки сайтов"))
-// 		body.WriteString("\r\n")
-// 		body.WriteString(s.msg.String() + "\r\n")
+	if email.From == "" {
+		return "", fmt.Errorf("sender can`t be empty")
+	}
 
-// 		s.msg.Reset()
+	from, err := mail.ParseAddress(email.From)
+	if err != nil {
+		return "", fmt.Errorf("ошибка парсинга отправителя: %w", err)
+	}
 
-// 		output <- smtpSendMail(s.host, smtp.PlainAuth("", s.username, s.password, s.host), s.from, s.to, []byte(body.String()))
-// 	}()
+	var fromStr string
 
-// 	select {
-// 	case <-ctx.Done():
-// 		return fmt.Errorf("контекст завершился раньше чем письмо отправилось: %w", ctx.Err())
-// 	case err := <-output:
-// 		if err == nil {
-// 			slog.Debug("уведомление отправлено")
-// 		}
-// 		return err
-// 	}
-// }
+	if from.Name == "" {
+		fromStr = from.Address
+	} else {
+		chunks := strings.Split(from.Address, "@")
 
-// func (s *SMTPSender) Error(domain string, result string) {
-// 	s.mu.Lock()
-// 	defer s.mu.Unlock()
+		punyDomain, err := idna.Lookup.ToASCII(chunks[1])
+		if err != nil {
+			return "", fmt.Errorf("ошибка кодирования домена: %s", err)
+		}
 
-// 	status := s.getStatusFor(domain)
+		fromStr = fmt.Sprintf("%s <%s>", mime.BEncoding.Encode("UTF-8", from.Name), fmt.Sprintf("%s@%s", chunks[0], punyDomain))
+	}
 
-// 	if status.Fail {
-// 		return
-// 	}
+	builder.WriteString(fmt.Sprintf("From: %s\n", fromStr))
 
-// 	s.msg.WriteString(result)
-// 	s.msg.WriteString("\r\n===================================\r\n")
+	if len(email.To) == 0 {
+		return "", fmt.Errorf("receiver can`t be empty")
+	}
 
-// 	status.Fail = true
-// }
+	var toList []string
+	for _, address := range email.To {
+		toAddress, err := mail.ParseAddress(address)
+		if err != nil {
+			return "", fmt.Errorf("ошибка парсинга адреса получателя: %w", err)
+		}
 
-// func (s *SMTPSender) Success(domain string) {
-// 	s.mu.Lock()
-// 	defer s.mu.Unlock()
+		chunks := strings.Split(toAddress.Address, "@")
 
-// 	status := s.getStatusFor(domain)
+		receiverPunycode, err := idna.Lookup.ToASCII(chunks[1])
+		if err != nil {
+			return "", fmt.Errorf("ошибка кодирования получателя: %w", err)
+		}
 
-// 	if status.Fail {
-// 		return
-// 	}
+		toList = append(toList, fmt.Sprintf("%s@%s", chunks[0], receiverPunycode))
+	}
 
-// 	s.msg.WriteString(fmt.Sprintf("Домен %s закрыт", domain))
-// 	s.msg.WriteString("\r\n===================================\r\n")
+	builder.WriteString(fmt.Sprintf("To: %s\n", strings.Join(toList, ", ")))
 
-// 	status.Fail = false
-// }
+	if email.Subject == "" {
+		return "", fmt.Errorf("subject can`t be empty")
+	}
 
-// func (s *SMTPSender) getStatusFor(domain string) *domainStatus {
-// 	status, ok := s.domainStatuses[domain]
-// 	if !ok {
-// 		status = &domainStatus{
-// 			Domain: domain,
-// 			Fail:   false,
-// 		}
+	builder.WriteString(fmt.Sprintf("Subject: %s\n", mime.BEncoding.Encode("UTF-8", email.Subject)))
+	builder.WriteString("Content-Type: text/plain; charset=UTF-8\n")
+	builder.WriteString("Content-Type-Encoding: base64\n")
 
-// 		s.domainStatuses[domain] = status
-// 	}
+	if email.Message == "" {
+		return "", fmt.Errorf("body can`t be empty")
+	}
 
-// 	return status
-// }
+	builder.WriteString(fmt.Sprintf("\n%s", base64.StdEncoding.EncodeToString([]byte(email.Message))))
+
+	return builder.String(), nil
+}
