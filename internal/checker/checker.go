@@ -107,21 +107,27 @@ func (c *Checker) Stop(ctx context.Context) error {
 		close(c.resultPipe)
 	}()
 
+	var notifierErr error
+	if err := c.notifier.Stop(ctx); err != nil {
+		notifierErr = fmt.Errorf("notifier stop: %w", err)
+	}
+
 	c.cancel()
 
-	waitChan := make(chan interface{})
+	waitChan := make(chan struct{})
 
 	go func() {
 		c.wg.Wait()
 		close(waitChan)
 	}()
 
+	var waitErr error
 	select {
 	case <-waitChan:
 		c.work = false
-		return nil
 	case <-ctx.Done():
-		return fmt.Errorf("context cancelled while waiting for checker to finish: %w", ctx.Err())
+		waitErr = fmt.Errorf("checker wait: %w", ctx.Err())
 	}
 
+	return errors.Join(notifierErr, waitErr)
 }
