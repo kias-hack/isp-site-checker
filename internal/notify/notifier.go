@@ -69,6 +69,8 @@ type notifier struct {
 	mailSender     MailSender
 	ticker         chan struct{}
 
+	mu sync.Mutex
+
 	mailSettings struct {
 		From    string
 		To      []string
@@ -79,6 +81,9 @@ type notifier struct {
 }
 
 func (n *notifier) Success(site string, message string) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	siteInfo := n.getSite(site)
 
 	siteInfo.LastUpdated = time.Now()
@@ -93,6 +98,9 @@ func (n *notifier) Success(site string, message string) {
 }
 
 func (n *notifier) Fail(site string, message string) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	siteInfo := n.getSite(site)
 
 	siteInfo.LastUpdated = time.Now()
@@ -180,6 +188,12 @@ func (n *notifier) worker() {
 	for {
 		select {
 		case <-n.ticker:
+			var toNotify []struct {
+				site    string
+				message string
+			}
+
+			n.mu.Lock()
 			for site, info := range n.sitesMap {
 				if time.Since(info.LastUpdated) >= SiteRetentionPeriod && info.Status != Fail {
 					slog.Debug("cleaning up site record", "site", site, "period", time.Since(info.LastSended))
@@ -187,23 +201,41 @@ func (n *notifier) worker() {
 				}
 
 				if n.canSendMail(info) {
-					ctx, cancel := context.WithTimeout(context.Background(), n.timeout)
+					toNotify = append(toNotify, struct {
+						site    string
+						message string
+					}{
+						site:    site,
+						message: info.Message,
+					})
+				}
+			}
+			n.mu.Unlock()
 
-					if err := n.mailSender.Send(ctx, &Mail{
-						Subject: n.mailSettings.Subject,
-						From:    n.mailSettings.From,
-						To:      n.mailSettings.To,
-						Message: info.Message,
-					}); err != nil {
-						slog.Error("notification send failed", "err", err)
-					} else {
+			for _, item := range toNotify {
+				ctx, cancel := context.WithTimeout(context.Background(), n.timeout)
+
+				if err := n.mailSender.Send(ctx, &Mail{
+					Subject: n.mailSettings.Subject,
+					From:    n.mailSettings.From,
+					To:      n.mailSettings.To,
+					Message: item.message,
+				}); err != nil {
+					slog.Error("notification send failed", "err", err)
+				} else {
+					n.mu.Lock()
+					info, ok := n.sitesMap[item.site]
+					if ok {
 						info.NeedNotify = false
 						info.LastSended = time.Now()
 						info.LastUpdated = time.Now()
+					} else {
+						slog.Warn("sent notify by deleted site row, strange")
 					}
-
-					cancel()
+					n.mu.Unlock()
 				}
+
+				cancel()
 			}
 		case <-n.stop:
 			return
