@@ -56,6 +56,7 @@ func (m *mailSender) Send(ctx context.Context, email *Mail) error {
 		address, err := mail.ParseAddress(email.From)
 		if err != nil {
 			errChan <- err
+			return
 		}
 		errChan <- m.smtpFunc(m.addr, m.auth, address.Address, email.To, []byte(body))
 	}()
