@@ -42,7 +42,7 @@ func TestLifecycle(t *testing.T) {
 
 	time.Sleep(10 * time.Millisecond)
 	if _, ok := <-exit; ok {
-		t.Fatal("планировщик не завершил свою работу после отсановки контекста")
+		t.Fatal("scheduler did not stop after context cancellation")
 	}
 }
 
@@ -71,10 +71,10 @@ func TestGetWebdomainsFailure(t *testing.T) {
 	select {
 	case task := <-taskPipe:
 		if task != nil {
-			t.Fatal("ошибка, планировщик отправил задачу", "task", task)
+			t.Fatal("scheduler sent a task when it should not have", "task", task)
 		}
 	default:
-		t.Log("задача отсутствует")
+		t.Log("no task received as expected")
 	}
 
 	cancel()
@@ -96,7 +96,7 @@ func TestSendTasks(t *testing.T) {
 		tasks   []*Task
 	}{
 		{
-			name: "Один домен и один сайт",
+			name: "one domain and one site",
 			domains: []*isp.WebDomain{
 				{Id: 1, Name: domainName, Owner: owner, IPAddr: host, Port: port, Sites: []string{domainName}},
 			},

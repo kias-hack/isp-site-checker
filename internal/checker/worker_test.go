@@ -46,7 +46,7 @@ func TestWorkerLifecycle(t *testing.T) {
 
 	select {
 	case <-checkCtx.Done():
-		t.Fatal("таймаут при заврешении воркера")
+		t.Fatal("worker shutdown timeout")
 	case <-exit:
 	}
 }
@@ -102,11 +102,11 @@ func TestWorkerStopByContext(t *testing.T) {
 
 	select {
 	case <-checkCtx.Done():
-		t.Fatal("таймаут при заврешении воркера")
+		t.Fatal("worker shutdown timeout")
 	case <-exit:
 		select {
 		case <-resultPipe:
-			t.Fatal("ошибка, воркер вернул задачу")
+			t.Fatal("worker should not have returned task")
 		default:
 		}
 	}
@@ -167,7 +167,7 @@ func TestWorkerErrResponse(t *testing.T) {
 
 	select {
 	case <-checkCtx.Done():
-		t.Fatal("таймаут при заврешении воркера")
+		t.Fatal("worker shutdown timeout")
 	case <-exit:
 	}
 }
@@ -226,7 +226,7 @@ func TestWorkerReturn200OK(t *testing.T) {
 
 	select {
 	case <-checkCtx.Done():
-		t.Fatal("таймаут при заврешении воркера")
+		t.Fatal("worker shutdown timeout")
 	case <-exit:
 	}
 }
@@ -285,7 +285,7 @@ func TestWorkerReturnNotOKStatus(t *testing.T) {
 
 	select {
 	case <-checkCtx.Done():
-		t.Fatal("таймаут при заврешении воркера")
+		t.Fatal("worker shutdown timeout")
 	case <-exit:
 	}
 }
@@ -303,7 +303,7 @@ func TestWorkerManyTasks(t *testing.T) {
 		close(resultPipe)
 		after := runtime.NumGoroutine()
 		if after > before {
-			t.Errorf("горутин было %d, стало %d", before, after)
+			t.Errorf("goroutine leak: was %d, now %d", before, after)
 		}
 	}()
 
@@ -350,7 +350,7 @@ func TestWorkerManyTasks(t *testing.T) {
 
 	select {
 	case <-checkCtx.Done():
-		t.Fatal("таймаут при заврешении воркера")
+		t.Fatal("worker shutdown timeout")
 	case <-exit:
 	}
 

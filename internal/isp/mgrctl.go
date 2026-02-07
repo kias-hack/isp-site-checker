@@ -30,7 +30,7 @@ func GetWebDomains(mgrctlPath string) ([]*WebDomain, error) {
 		return nil, err
 	}
 
-	// Компилируем регулярку один раз
+	// Compile regex once
 	re, err := regexp.Compile(MGR_WEBDOMAIN_REGEX)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func GetWebDomains(mgrctlPath string) ([]*WebDomain, error) {
 
 		match := re.FindStringSubmatch(line)
 		if match == nil {
-			slog.Warn("строка не соответствует регулярному выражению", "line", line)
+			slog.Warn("line does not match regex", "line", line)
 			continue
 		}
 
@@ -61,7 +61,7 @@ func GetWebDomains(mgrctlPath string) ([]*WebDomain, error) {
 			switch name {
 			case "id":
 				if err := setIntVal(&domain.Id, match[i]); err != nil {
-					slog.Warn("ошибка парсинга ID", "line", line, "error", err)
+					slog.Warn("failed to parse ID", "line", line, "error", err)
 					continue
 				}
 			case "name":

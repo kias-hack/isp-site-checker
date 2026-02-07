@@ -23,12 +23,12 @@ func TestCreateClientDialContext(t *testing.T) {
 
 	resp, err := client.Get("http://yandex.ru/")
 	if err != nil {
-		t.Fatalf("ошибка запроса к тестовому серверу %v", err)
+		t.Fatalf("request to test server failed: %v", err)
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf("произошла ошибка при получении данных ответа %v", err)
+		t.Fatalf("failed to read response body: %v", err)
 	}
 
 	assert.Equal(t, []byte("OK"), data)

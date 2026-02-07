@@ -19,7 +19,7 @@ func TestBuildMailBody(t *testing.T) {
 		isErr       bool
 	}{
 		{
-			name: "Пустой отправитель",
+			name: "empty sender",
 			mail: &Mail{
 				To:      []string{"s@example.com"},
 				Subject: "test",
@@ -30,7 +30,7 @@ func TestBuildMailBody(t *testing.T) {
 			isErr:       true,
 		},
 		{
-			name: "Ноль получателей",
+			name: "zero recipients",
 			mail: &Mail{
 				From:    "me@example.com",
 				To:      []string{},
@@ -42,7 +42,7 @@ func TestBuildMailBody(t *testing.T) {
 			isErr:       true,
 		},
 		{
-			name: "Пустой получатель",
+			name: "empty recipient",
 			mail: &Mail{
 				From:    "me@example.com",
 				To:      nil,
@@ -54,7 +54,7 @@ func TestBuildMailBody(t *testing.T) {
 			isErr:       true,
 		},
 		{
-			name: "Пустая тема",
+			name: "empty subject",
 			mail: &Mail{
 				From:    "me@example.com",
 				To:      []string{"set@example.com"},
@@ -66,7 +66,7 @@ func TestBuildMailBody(t *testing.T) {
 			isErr:       true,
 		},
 		{
-			name: "Пустое тело",
+			name: "empty body",
 			mail: &Mail{
 				From:    "me@example.com",
 				To:      []string{"s@example.com"},
@@ -78,7 +78,7 @@ func TestBuildMailBody(t *testing.T) {
 			isErr:       true,
 		},
 		{
-			name: "Успешное создание",
+			name: "successful build",
 			mail: &Mail{
 				From:    "me@example.com",
 				To:      []string{"s@example.com"},
@@ -96,7 +96,7 @@ VGVzdA==`,
 			isErr:   false,
 		},
 		{
-			name: "Успешное создание и несколько получателей",
+			name: "successful build with multiple recipients",
 			mail: &Mail{
 				From:    "me@example.com",
 				To:      []string{"s@example.com", "w@example.com"},
@@ -114,7 +114,7 @@ VGVzdA==`,
 			isErr:   false,
 		},
 		{
-			name: "Тема с русскими символами",
+			name: "subject with non-ASCII characters",
 			mail: &Mail{
 				From:    "me@example.com",
 				To:      []string{"s@example.com"},
@@ -132,7 +132,7 @@ VGVzdA==`,
 			isErr:   false,
 		},
 		{
-			name: "Письмо с отправителем с доп. названием",
+			name: "mail with sender display name",
 			mail: &Mail{
 				From:    "Отправитель письма <sender@example.com>",
 				To:      []string{"s@example.com"},
@@ -150,7 +150,7 @@ VGVzdA==`,
 			isErr:   false,
 		},
 		{
-			name: "В отправителе русский домен",
+			name: "sender with IDN domain",
 			mail: &Mail{
 				From:    "Отправитель письма <sender@тест.рф>",
 				To:      []string{"s@example.com"},
@@ -168,7 +168,7 @@ VGVzdA==`,
 			isErr:   false,
 		},
 		{
-			name: "В получаете один русский домен",
+			name: "single IDN recipient",
 			mail: &Mail{
 				From:    "Отправитель письма <sender@тест.рф>",
 				To:      []string{"sender@тест.рф"},
@@ -186,7 +186,7 @@ VGVzdA==`,
 			isErr:   false,
 		},
 		{
-			name: "В получаете несколько русских доменов",
+			name: "multiple IDN recipients",
 			mail: &Mail{
 				From:    "Отправитель письма <sender@тест.рф>",
 				To:      []string{"sender@тест.рф", "test@тест.рф"},
@@ -317,6 +317,6 @@ func TestMailTesterSendMailWithStopByContext(t *testing.T) {
 	select {
 	case <-exit:
 	case <-timeoutCtx.Done():
-		t.Fatal("таймаут")
+		t.Fatal("timeout")
 	}
 }

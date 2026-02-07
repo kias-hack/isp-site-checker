@@ -12,10 +12,10 @@ const (
 )
 
 func TestRegexWebDomain(t *testing.T) {
-	t.Run("проверка регулярки для парсинга webdomain", func(t *testing.T) {
+	t.Run("webdomain regex parsing", func(t *testing.T) {
 		bytes, err := os.ReadFile(FILENAME)
 		if err != nil {
-			t.Fatalf("не удалось прочитать файл %s: %v", FILENAME, err)
+			t.Fatalf("failed to read file %s: %v", FILENAME, err)
 		}
 
 		re := regexp.MustCompile(MGR_WEBDOMAIN_REGEX)
@@ -24,23 +24,23 @@ func TestRegexWebDomain(t *testing.T) {
 		matchedCount := 0
 
 		for i, line := range lines {
-			// Пропускаем пустые строки
+			// Skip empty lines
 			if len(strings.TrimSpace(line)) == 0 {
 				continue
 			}
 
 			match := re.FindStringSubmatch(line)
 			if match == nil {
-				t.Fatalf("регулярка не совпала на строке %d: %s", i+1, line)
+				t.Fatalf("regex did not match line %d: %s", i+1, line)
 			}
 
 			matchedCount++
 		}
 
 		if matchedCount == 0 {
-			t.Fatal("не найдено ни одной строки для проверки")
+			t.Fatal("no lines to check")
 		}
 
-		t.Logf("успешно обработано строк: %d", matchedCount)
+		t.Logf("successfully matched %d lines", matchedCount)
 	})
 }

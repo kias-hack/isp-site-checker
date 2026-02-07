@@ -47,16 +47,16 @@ func LoadConfig() (*Config, error) {
 	flag.Parse()
 
 	if configPath == "" {
-		panic(fmt.Errorf("необходимо указать путь к конфигурационному файлу"))
+		panic(fmt.Errorf("config file path is required"))
 	}
 
 	bytes, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("ошибка чтения файла с конфигурацией: %s", err)
+		return nil, fmt.Errorf("failed to read config file: %s", err)
 	}
 
 	if err := toml.Unmarshal(bytes, cfg); err != nil {
-		return nil, fmt.Errorf("ошибка декодирования конфигурации: %s", err)
+		return nil, fmt.Errorf("failed to decode config: %s", err)
 	}
 
 	if cfg.ScrapeInterval.Seconds() == 0 {
@@ -68,11 +68,11 @@ func LoadConfig() (*Config, error) {
 	}
 
 	if cfg.SMTP.Host == "" || cfg.SMTP.Password == "" || cfg.SMTP.Port == "" || cfg.SMTP.Username == "" {
-		return nil, fmt.Errorf("проверьте настройки SMTP")
+		return nil, fmt.Errorf("check SMTP settings")
 	}
 
 	if cfg.EMail.From == "" || len(cfg.EMail.To) == 0 || cfg.EMail.Subject == "" {
-		return nil, fmt.Errorf("проверьте настройки письма")
+		return nil, fmt.Errorf("check mail settings")
 	}
 
 	if cfg.SendInterval.Seconds() == 0 {
@@ -88,7 +88,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	if cfg.SendInterval.Seconds()-cfg.SendTimeout.Seconds() <= 2 {
-		return nil, fmt.Errorf("интервалом должен быть больше таймаута более чем на 2 секунды")
+		return nil, fmt.Errorf("interval must be greater than timeout by more than 2 seconds")
 	}
 
 	return cfg, nil

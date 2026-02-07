@@ -22,7 +22,7 @@ func worker(ctx context.Context, wg *sync.WaitGroup, taskPipe <-chan *Task, resu
 		case task := <-taskPipe:
 			logger := slog.With("component", fmt.Sprintf("worker[%d]", n), "site", task.Site, "owner", task.Owner)
 
-			logger.Debug("получена задача для обработки", "task", task)
+			logger.Debug("task received for processing", "task", task)
 
 			client := createClient(task.Connection.Addr, task.Connection.Port)
 
@@ -33,20 +33,20 @@ func worker(ctx context.Context, wg *sync.WaitGroup, taskPipe <-chan *Task, resu
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 
 			if err != nil {
-				logger.Debug("произошла ошибка при создании запроса", "err", err)
+				logger.Debug("failed to create request", "err", err)
 				task.Result.Err = err
 			} else {
 				resp, err := client.Do(req)
 				if errors.Is(err, context.Canceled) {
-					logger.Debug("завершен по контексту")
+					logger.Debug("cancelled by context")
 					return
 				}
 
 				if err != nil {
-					logger.Debug("произошла ошибка при подключении к серверу", "err", err)
+					logger.Debug("failed to connect to server", "err", err)
 					task.Result.Err = err
 				} else {
-					logger.Debug("получен статус от сервера", "status", resp.StatusCode)
+					logger.Debug("received status from server", "status", resp.StatusCode)
 					task.Result.StatusCode = resp.StatusCode
 					resp.Body.Close()
 				}

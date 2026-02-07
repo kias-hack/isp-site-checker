@@ -36,7 +36,7 @@ func TestResultHandlerLifecycle(t *testing.T) {
 	defer cancel()
 	select {
 	case <-timeoutCtx.Done():
-		t.Fatal("таймаут завершения")
+		t.Fatal("timeout waiting for completion")
 	case <-exit:
 	}
 }
@@ -127,7 +127,7 @@ func TestResultCases(t *testing.T) {
 	defer cancel()
 	select {
 	case <-timeoutCtx.Done():
-		t.Fatal("таймаут завершения")
+		t.Fatal("timeout waiting for completion")
 	case <-exit:
 	}
 }

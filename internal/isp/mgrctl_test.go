@@ -23,7 +23,7 @@ func TestGetWebDomain(t *testing.T) {
 		ipAddr     string
 	}{
 		{
-			name:       "домен с цифрами",
+			name:       "domain with digits",
 			id:         1,
 			domainName: "123owner.owner-oner.er",
 			owner:      "owner",
@@ -31,7 +31,7 @@ func TestGetWebDomain(t *testing.T) {
 			ipAddr:     "127.0.0.1",
 		},
 		{
-			name:       "домен без цифр",
+			name:       "domain without digits",
 			id:         2,
 			domainName: "example.com",
 			owner:      "owner1",
@@ -42,7 +42,7 @@ func TestGetWebDomain(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Мокаем команду mgrctl
+			// Mock mgrctl command
 			execCommand = func(path string, args ...string) *exec.Cmd {
 				result := fmt.Sprintf(
 					webDomainLineTemplate,
@@ -61,45 +61,45 @@ func TestGetWebDomain(t *testing.T) {
 				execCommand = exec.Command
 			}()
 
-			// Выполняем функцию
+			// Run function
 			domains, err := GetWebDomains("mgrctl")
 			if err != nil {
-				t.Fatalf("неожиданная ошибка: %v", err)
+				t.Fatalf("unexpected error: %v", err)
 			}
 
-			// Проверяем количество доменов
+			// Check domain count
 			if len(domains) != 1 {
-				t.Fatalf("получено доменов: %d, ожидается: 1", len(domains))
+				t.Fatalf("got %d domains, expected 1", len(domains))
 			}
 
 			domain := domains[0]
 
-			// Проверяем все поля
+			// Check all fields
 			if domain.Id != tc.id {
-				t.Errorf("Id: получено %d, ожидается %d", domain.Id, tc.id)
+				t.Errorf("Id: got %d, expected %d", domain.Id, tc.id)
 			}
 
 			if domain.Name != tc.domainName {
-				t.Errorf("Name: получено %q, ожидается %q", domain.Name, tc.domainName)
+				t.Errorf("Name: got %q, expected %q", domain.Name, tc.domainName)
 			}
 
 			if domain.Owner != tc.owner {
-				t.Errorf("Owner: получено %q, ожидается %q", domain.Owner, tc.owner)
+				t.Errorf("Owner: got %q, expected %q", domain.Owner, tc.owner)
 			}
 
 			if domain.Docroot != tc.docroot {
-				t.Errorf("Docroot: получено %q, ожидается %q", domain.Docroot, tc.docroot)
+				t.Errorf("Docroot: got %q, expected %q", domain.Docroot, tc.docroot)
 			}
 
 			if domain.IPAddr != tc.ipAddr {
-				t.Errorf("IPAddr: получено %q, ожидается %q", domain.IPAddr, tc.ipAddr)
+				t.Errorf("IPAddr: got %q, expected %q", domain.IPAddr, tc.ipAddr)
 			}
 		})
 	}
 }
 
 func TestGetWebDomainThatNotActiveWillBeIgnored(t *testing.T) {
-	// Мокаем команду mgrctl
+	// Mock mgrctl command
 	execCommand = func(path string, args ...string) *exec.Cmd {
 		result := fmt.Sprintf(
 			webDomainLineTemplate,
@@ -118,15 +118,15 @@ func TestGetWebDomainThatNotActiveWillBeIgnored(t *testing.T) {
 		execCommand = exec.Command
 	}()
 
-	// Выполняем функцию
+	// Run function
 	domains, err := GetWebDomains("mgrctl")
 	if err != nil {
-		t.Fatalf("неожиданная ошибка: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Проверяем количество доменов
+	// Check domain count
 	if len(domains) != 0 {
-		t.Fatalf("ошибка, неативный домен был возвращен")
+		t.Fatalf("inactive domain was incorrectly returned")
 	}
 }
 
@@ -148,7 +148,7 @@ func TestFindSubdomainWithDirs(t *testing.T) {
 		domain         string
 	}{
 		{
-			name: "Поиск с несколькими файлами",
+			name: "search with multiple files",
 			entries: []os.DirEntry{
 				dirEntry{
 					name:  "certs",
@@ -171,7 +171,7 @@ func TestFindSubdomainWithDirs(t *testing.T) {
 			domain:         "localhost.ru",
 		},
 		{
-			name: "Поиск с несколькими файлами и при наличии основного домена",
+			name: "search with main domain present",
 			entries: []os.DirEntry{
 				dirEntry{
 					name:  "localhost.ru",
@@ -186,7 +186,7 @@ func TestFindSubdomainWithDirs(t *testing.T) {
 			domain:         "localhost.ru",
 		},
 		{
-			name: "в наличии основной домен и поддомен но забэкапированный",
+			name: "main domain and backup subdomain",
 			entries: []os.DirEntry{
 				dirEntry{
 					name:  "localhost.ru",
@@ -201,7 +201,7 @@ func TestFindSubdomainWithDirs(t *testing.T) {
 			domain:         "localhost.ru",
 		},
 		{
-			name: "в наличии основной домен и несколько поддоменов",
+			name: "main domain and multiple subdomains",
 			entries: []os.DirEntry{
 				dirEntry{
 					name:  "localhost.ru",
@@ -220,7 +220,7 @@ func TestFindSubdomainWithDirs(t *testing.T) {
 			domain:         "localhost.ru",
 		},
 		{
-			name: "в наличии основной домен и несколько поддоменов, но один и поддоменов файлом является",
+			name: "main domain and subdomains with one being a file",
 			entries: []os.DirEntry{
 				dirEntry{
 					name:  "localhost.ru",
@@ -239,7 +239,7 @@ func TestFindSubdomainWithDirs(t *testing.T) {
 			domain:         "localhost.ru",
 		},
 		{
-			name: "нет никаких директорий",
+			name: "no matching directories",
 			entries: []os.DirEntry{
 				dirEntry{
 					name:  "localhost.ru",
@@ -258,13 +258,13 @@ func TestFindSubdomainWithDirs(t *testing.T) {
 			domain:         "other-domain.ru",
 		},
 		{
-			name:           "пустая директория",
+			name:           "empty directory",
 			entries:        []os.DirEntry{},
 			expectedResult: []string{"other-domain.ru"},
 			domain:         "other-domain.ru",
 		},
 		{
-			name: "есть домен с похожим именем, но это не поддомен",
+			name: "similar name but not subdomain",
 			entries: []os.DirEntry{
 				dirEntry{
 					name:  "oooother-domain.ru",
@@ -275,7 +275,7 @@ func TestFindSubdomainWithDirs(t *testing.T) {
 			domain:         "other-domain.ru",
 		},
 		{
-			name: "есть домен с похожим именем, но это не поддомен",
+			name: "similar name but not subdomain (duplicate)",
 			entries: []os.DirEntry{
 				dirEntry{
 					name:  "test.oooother-domain.ru",

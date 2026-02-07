@@ -18,7 +18,7 @@ func createClient(host string, port string) *http.Client {
 		},
 	}
 
-	// TODO внедрить настройку timeout и keepalive
+	// TODO add configurable timeout and keepalive
 
 	return &http.Client{
 		Transport: transport,

@@ -58,7 +58,7 @@ func NewChecker(config *config.Config, notifier notify.Notifier, getDomains isp.
 
 func (c *Checker) Start() error {
 	if c.ctx != nil {
-		return errors.New("процесс уже запущен")
+		return errors.New("process already running")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -121,7 +121,7 @@ func (c *Checker) Stop(ctx context.Context) error {
 		c.work = false
 		return nil
 	case <-ctx.Done():
-		return fmt.Errorf("контекст завершился пока я ждал завершения чекера %w", ctx.Err())
+		return fmt.Errorf("context cancelled while waiting for checker to finish: %w", ctx.Err())
 	}
 
 }

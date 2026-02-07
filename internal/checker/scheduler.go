@@ -14,11 +14,11 @@ func scheduler(ctx context.Context, wg *sync.WaitGroup, ticker <-chan struct{}, 
 	for {
 		select {
 		case <-ticker:
-			slog.Debug("начинаю проверку доменов, получаю список доменов", "component", "scheduler")
+			slog.Debug("starting domain check, fetching domain list", "component", "scheduler")
 
 			domains, err := getDomains()
 			if err != nil {
-				slog.Error("при получении списка доменов из ISPManager произошла ошибка", "err", err, "component", "scheduler")
+				slog.Error("failed to get domain list from ISPManager", "err", err, "component", "scheduler")
 				continue
 			}
 
@@ -26,7 +26,7 @@ func scheduler(ctx context.Context, wg *sync.WaitGroup, ticker <-chan struct{}, 
 				logger := slog.With("component", "scheduler", "name", domainInfo.Name, "owner", domainInfo.Owner)
 
 				for _, site := range domainInfo.Sites {
-					logger.Debug("отправлена задача на обработку", "site", site)
+					logger.Debug("task sent for processing", "site", site)
 
 					taskPipe <- &Task{
 						DomainId:   domainInfo.Id,

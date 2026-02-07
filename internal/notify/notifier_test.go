@@ -68,7 +68,7 @@ func TestNotifierStopByContextWhileWaitingSendMail(t *testing.T) {
 	select {
 	case <-wait:
 	case <-timer.C:
-		t.Fatal("почта не была отправлена")
+		t.Fatal("mail was not sent")
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	stop := make(chan struct{})
@@ -208,7 +208,7 @@ func TestNotifierComplexBehaviour(t *testing.T) {
 	stopNotifier(t, notifier)
 }
 
-// повторная отправка уведомления при продолжительной ошибке
+// repeat notification send on persistent error
 func TestNotifierRepeatSend(t *testing.T) {
 	ctrl, sender := newMockSender(t)
 	defer ctrl.Finish()
@@ -262,7 +262,7 @@ func TestNotifierDeleteOldSites(t *testing.T) {
 
 	_, ok := notifier.sitesMap["site"]
 	if ok {
-		t.Fatal("запись о сайте не была удалена относительно последнего обновления")
+		t.Fatal("site record was not removed after retention period")
 	}
 	stopNotifier(t, notifier)
 }
@@ -292,16 +292,14 @@ func TestNotifierCheckNoDeletingCases(t *testing.T) {
 
 	_, ok := notifier.sitesMap["site1"]
 	if !ok {
-		t.Fatalf("запись о сайте %s была удалена", "site1")
+		t.Fatalf("site record %s was unexpectedly removed", "site1")
 	}
 	_, ok = notifier.sitesMap["site2"]
 	if !ok {
-		t.Fatalf("запись о сайте %s была удалена", "site2")
+		t.Fatalf("site record %s was unexpectedly removed", "site2")
 	}
 	stopNotifier(t, notifier)
 }
-
-// TODO тест что записи не удаляются раньше срока и что записи с ошибкой тоже не будут удалены
 
 func newMockSender(t *testing.T) (*gomock.Controller, *MockMailSender) {
 	ctrl := gomock.NewController(t)

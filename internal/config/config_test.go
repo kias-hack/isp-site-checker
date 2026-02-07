@@ -47,7 +47,7 @@ from = "test@test.tu"
 
 	cfg, err := LoadConfig()
 	if err != nil {
-		t.Fatalf("произошла ошибка при создании конфигурации: %v", err)
+		t.Fatalf("failed to load config: %v", err)
 	}
 
 	assert.Equal(t, "/usr/local/mgr5/sbin/mgrctl", cfg.MgrCtlPath)
@@ -200,7 +200,7 @@ from = "test@test.tu"
 
 	cfg, err := LoadConfig()
 	if err != nil {
-		t.Fatalf("ошибка чтения конфигурации %v", err)
+		t.Fatalf("config load error: %v", err)
 	}
 
 	assert.Equal(t, "1m0s", cfg.SendInterval.String())

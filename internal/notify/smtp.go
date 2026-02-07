@@ -45,14 +45,14 @@ type mailSender struct {
 func (m *mailSender) Send(ctx context.Context, email *Mail) error {
 	body, err := buildMailBody(email)
 	if err != nil {
-		return fmt.Errorf("ошибка при формировании тела письма: %w", err)
+		return fmt.Errorf("failed to build mail body: %w", err)
 	}
 
 	errChan := make(chan error)
 
 	go func() {
 		defer close(errChan)
-		slog.Debug("отправляю письмо", "msg", body)
+		slog.Debug("sending mail", "msg", body)
 		address, err := mail.ParseAddress(email.From)
 		if err != nil {
 			errChan <- err
@@ -77,7 +77,7 @@ func buildMailBody(email *Mail) (string, error) {
 
 	from, err := mail.ParseAddress(email.From)
 	if err != nil {
-		return "", fmt.Errorf("ошибка парсинга отправителя: %w", err)
+		return "", fmt.Errorf("failed to parse sender address: %w", err)
 	}
 
 	var fromStr string
@@ -89,7 +89,7 @@ func buildMailBody(email *Mail) (string, error) {
 
 		punyDomain, err := idna.Lookup.ToASCII(chunks[1])
 		if err != nil {
-			return "", fmt.Errorf("ошибка кодирования домена: %s", err)
+			return "", fmt.Errorf("failed to encode domain: %s", err)
 		}
 
 		fromStr = fmt.Sprintf("%s <%s>", mime.BEncoding.Encode("UTF-8", from.Name), fmt.Sprintf("%s@%s", chunks[0], punyDomain))
@@ -105,14 +105,14 @@ func buildMailBody(email *Mail) (string, error) {
 	for _, address := range email.To {
 		toAddress, err := mail.ParseAddress(address)
 		if err != nil {
-			return "", fmt.Errorf("ошибка парсинга адреса получателя: %w", err)
+			return "", fmt.Errorf("failed to parse recipient address: %w", err)
 		}
 
 		chunks := strings.Split(toAddress.Address, "@")
 
 		receiverPunycode, err := idna.Lookup.ToASCII(chunks[1])
 		if err != nil {
-			return "", fmt.Errorf("ошибка кодирования получателя: %w", err)
+			return "", fmt.Errorf("failed to encode recipient: %w", err)
 		}
 
 		toList = append(toList, fmt.Sprintf("%s@%s", chunks[0], receiverPunycode))

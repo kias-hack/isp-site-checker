@@ -21,11 +21,11 @@ func resultHandler(ctx context.Context, wg *sync.WaitGroup, resultPipe <-chan *T
 
 			if task.Result.Err == nil && task.Result.StatusCode == http.StatusUnauthorized {
 				notifier.Success(task.Site, fmt.Sprintf("Сайт %s закрыт - %d\r\nВладелец - %s", task.Site, task.Result.StatusCode, task.Owner))
-				logger.Debug("получен результат, сайт закрыт")
+				logger.Debug("result received, site closed")
 				continue
 			}
 
-			logger.Debug("получен результат, начинаю обрабатывать результат")
+			logger.Debug("result received, processing")
 
 			msg := strings.Builder{}
 
@@ -35,10 +35,10 @@ func resultHandler(ctx context.Context, wg *sync.WaitGroup, resultPipe <-chan *T
 			msg.WriteString(fmt.Sprintf("Время: %s\n", task.Result.Timestamp))
 
 			if task.Result.Err != nil {
-				logger.Debug("ошибка в результате", "err", task.Result.Err)
+				logger.Debug("error in result", "err", task.Result.Err)
 				msg.WriteString(fmt.Sprintf("Произошла ошибка: %s", task.Result.Err.Error()))
 			} else {
-				logger.Debug("неверный статус в результате", "status_code", task.Result.StatusCode)
+				logger.Debug("invalid status in result", "status_code", task.Result.StatusCode)
 				msg.WriteString(fmt.Sprintf("Код ответа: %d", task.Result.StatusCode))
 			}
 

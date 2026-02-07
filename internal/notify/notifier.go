@@ -84,6 +84,8 @@ func (n *notifier) Success(site string, message string) {
 	siteInfo.LastUpdated = time.Now()
 
 	if siteInfo.Status != Success {
+		slog.Info("site closed", "site", site)
+
 		siteInfo.NeedNotify = true
 		siteInfo.Message = message
 		siteInfo.Status = Success
@@ -96,6 +98,8 @@ func (n *notifier) Fail(site string, message string) {
 	siteInfo.LastUpdated = time.Now()
 
 	if siteInfo.Status != Fail {
+		slog.Info("site returned invalid response", "site", site)
+
 		siteInfo.NeedNotify = true
 		siteInfo.Message = message
 		siteInfo.Status = Fail
@@ -144,7 +148,7 @@ func (n *notifier) Stop(ctx context.Context) error {
 
 func (n *notifier) start() {
 	if n.stop != nil {
-		panic("сервис уже запущен")
+		panic("service already started")
 	}
 
 	n.stop = make(chan struct{})
@@ -178,7 +182,7 @@ func (n *notifier) worker() {
 		case <-n.ticker:
 			for site, info := range n.sitesMap {
 				if time.Since(info.LastUpdated) >= SiteRetentionPeriod && info.Status != Fail {
-					slog.Debug("очищаю запись о сайте", "site", site, "period", time.Since(info.LastSended))
+					slog.Debug("cleaning up site record", "site", site, "period", time.Since(info.LastSended))
 					delete(n.sitesMap, site)
 				}
 
@@ -191,7 +195,7 @@ func (n *notifier) worker() {
 						To:      n.mailSettings.To,
 						Message: info.Message,
 					}); err != nil {
-						slog.Error("ошибка отправки уведомления", "err", err)
+						slog.Error("notification send failed", "err", err)
 					} else {
 						info.NeedNotify = false
 						info.LastSended = time.Now()
@@ -212,7 +216,7 @@ func (n *notifier) canSendMail(info *SiteNotification) bool {
 		return true
 	}
 
-	slog.Debug("проверка повторной отправки уведомления", "info", info, "since", time.Since(info.LastSended))
+	slog.Debug("checking repeat notification send", "info", info, "since", time.Since(info.LastSended))
 
 	if info.Status == Fail && time.Since(info.LastSended) >= n.repeatInterval {
 		return true

@@ -18,7 +18,7 @@ import (
 func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		slog.Error("при конфигурировании приложения произошла ошибка", "err", err)
+		slog.Error("config error", "err", err)
 		os.Exit(1)
 	}
 
@@ -34,7 +34,7 @@ func main() {
 	chk := checker.NewChecker(cfg, notify.NewNotifier(cfg, sender), webDomainsFunc)
 
 	if err := chk.Start(); err != nil {
-		slog.Error("произошла ошибка запуска приложения", "err", err)
+		slog.Error("failed to start application", "err", err)
 		os.Exit(1)
 	}
 
@@ -44,13 +44,13 @@ func main() {
 
 	<-sig
 
-	slog.Info("получил сигнал на завершение, завершаюсь")
+	slog.Info("received shutdown signal, exiting")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := chk.Stop(ctx); err != nil {
-		slog.Info("при завершении произошла ошибка", "err", err)
+		slog.Info("error during shutdown", "err", err)
 		os.Exit(1)
 	}
 }
