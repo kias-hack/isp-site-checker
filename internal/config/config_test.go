@@ -16,13 +16,17 @@ func TestLoadConfig(t *testing.T) {
 	configContent := `
 scrape_interval = "60s"
 mgrctl_path = "/usr/local/mgr5/sbin/mgrctl"
-recipient = "kias@gendalf.ru"
 
 [smtp]
 username = "test@test.tu"
 password = "hello-world"
 host = "mail.yandex.ru"
-port = 465
+port = "465"
+from = "test@test.tu"
+
+[email]
+to = ["test@example.com"]
+subject = "subject"
 from = "test@test.tu"
 `
 
@@ -47,13 +51,14 @@ from = "test@test.tu"
 	}
 
 	assert.Equal(t, "/usr/local/mgr5/sbin/mgrctl", cfg.MgrCtlPath)
-	assert.Equal(t, "kias@gendalf.ru", cfg.Recipient)
 	assert.Equal(t, "1m0s", cfg.ScrapeInterval.String())
-	assert.Equal(t, "test@test.tu", cfg.SMTP.From)
+	assert.Equal(t, "test@test.tu", cfg.EMail.From)
+	assert.Equal(t, []string{"test@example.com"}, cfg.EMail.To)
+	assert.Equal(t, "subject", cfg.EMail.Subject)
 	assert.Equal(t, "test@test.tu", cfg.SMTP.Username)
 	assert.Equal(t, "hello-world", cfg.SMTP.Password)
 	assert.Equal(t, "mail.yandex.ru", cfg.SMTP.Host)
-	assert.Equal(t, 465, cfg.SMTP.Port)
+	assert.Equal(t, "465", cfg.SMTP.Port)
 }
 
 func TestLoadConfig_Defaults(t *testing.T) {
@@ -61,13 +66,15 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 
 	configContent := `
-recipient = "kias@gendalf.ru"
-
 [smtp]
 username = "test@test.tu"
 password = "hello-world"
 host = "mail.yandex.ru"
-port = 465
+port = "465"
+
+[email]
+to = ["test@example.com"]
+subject = "subject"
 from = "test@test.tu"
 `
 
@@ -90,13 +97,14 @@ from = "test@test.tu"
 
 	assert.Nil(t, err)
 	assert.Equal(t, "/usr/local/mgr5/sbin/mgrctl", cfg.MgrCtlPath)
-	assert.Equal(t, "kias@gendalf.ru", cfg.Recipient)
 	assert.Equal(t, "1m0s", cfg.ScrapeInterval.String())
-	assert.Equal(t, "test@test.tu", cfg.SMTP.From)
+	assert.Equal(t, "test@test.tu", cfg.EMail.From)
+	assert.Equal(t, []string{"test@example.com"}, cfg.EMail.To)
+	assert.Equal(t, "subject", cfg.EMail.Subject)
 	assert.Equal(t, "test@test.tu", cfg.SMTP.Username)
 	assert.Equal(t, "hello-world", cfg.SMTP.Password)
 	assert.Equal(t, "mail.yandex.ru", cfg.SMTP.Host)
-	assert.Equal(t, 465, cfg.SMTP.Port)
+	assert.Equal(t, "465", cfg.SMTP.Port)
 }
 
 func TestLoadConfig_EmptyRecipient(t *testing.T) {
@@ -108,8 +116,7 @@ func TestLoadConfig_EmptyRecipient(t *testing.T) {
 username = "test@test.tu"
 password = "hello-world"
 host = "mail.yandex.ru"
-port = 465
-from = "test@test.tu"
+port = "465"
 `
 
 	err := os.WriteFile(configPath, []byte(configContent), 0644)
@@ -163,13 +170,16 @@ func TestLoadConfig_EmptySMTPTimeoutAndInterval(t *testing.T) {
 	configPath := filepath.Join(tmpDir, "config.toml")
 
 	configContent := `
-recipient = "test@test.ru"
-
 [smtp]
 username = "test@test.tu"
 password = "hello-world"
 host = "mail.yandex.ru"
-port = 465
+port = "465"
+from = "test@test.tu"
+
+[email]
+to = ["test@example.com"]
+subject = "subject"
 from = "test@test.tu"
 `
 
@@ -193,6 +203,6 @@ from = "test@test.tu"
 		t.Fatalf("ошибка чтения конфигурации %v", err)
 	}
 
-	assert.Equal(t, "1m0s", cfg.SMTP.SendInterval.String())
-	assert.Equal(t, "2s", cfg.SMTP.SendTimeout.String())
+	assert.Equal(t, "1m0s", cfg.SendInterval.String())
+	assert.Equal(t, "2s", cfg.SendTimeout.String())
 }

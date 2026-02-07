@@ -89,7 +89,7 @@ func TestBuildMailBody(t *testing.T) {
 To: s@example.com
 Subject: test
 Content-Type: text/plain; charset=UTF-8
-Content-Type-Encoding: base64
+Content-Transfer-Encoding: base64
 
 VGVzdA==`,
 			errText: "",
@@ -107,7 +107,7 @@ VGVzdA==`,
 To: s@example.com, w@example.com
 Subject: test
 Content-Type: text/plain; charset=UTF-8
-Content-Type-Encoding: base64
+Content-Transfer-Encoding: base64
 
 VGVzdA==`,
 			errText: "",
@@ -125,7 +125,7 @@ VGVzdA==`,
 To: s@example.com
 Subject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=
 Content-Type: text/plain; charset=UTF-8
-Content-Type-Encoding: base64
+Content-Transfer-Encoding: base64
 
 VGVzdA==`,
 			errText: "",
@@ -143,7 +143,7 @@ VGVzdA==`,
 To: s@example.com
 Subject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=
 Content-Type: text/plain; charset=UTF-8
-Content-Type-Encoding: base64
+Content-Transfer-Encoding: base64
 
 VGVzdA==`,
 			errText: "",
@@ -161,7 +161,7 @@ VGVzdA==`,
 To: s@example.com
 Subject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=
 Content-Type: text/plain; charset=UTF-8
-Content-Type-Encoding: base64
+Content-Transfer-Encoding: base64
 
 VGVzdA==`,
 			errText: "",
@@ -179,7 +179,7 @@ VGVzdA==`,
 To: sender@xn--e1aybc.xn--p1ai
 Subject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=
 Content-Type: text/plain; charset=UTF-8
-Content-Type-Encoding: base64
+Content-Transfer-Encoding: base64
 
 VGVzdA==`,
 			errText: "",
@@ -197,7 +197,7 @@ VGVzdA==`,
 To: sender@xn--e1aybc.xn--p1ai, test@xn--e1aybc.xn--p1ai
 Subject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=
 Content-Type: text/plain; charset=UTF-8
-Content-Type-Encoding: base64
+Content-Transfer-Encoding: base64
 
 VGVzdA==`,
 			errText: "",

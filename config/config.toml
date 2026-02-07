@@ -1,10 +1,15 @@
+mgrctl_path = "path/to/mgrctl"
+
 scrape_interval = "10s"
-mgrctl_path = "/home/kias/go/isp-site-checker/mgrctl-test"
-recipient = "admin@example.ru"
+send_interval = "10s"
 
 [smtp]
-    username = "admin@example.ru"
-    password = "hello-world"
-    host = "mail.example.ru"
-    port = 465
-    from = "admin@example.ru"
+username = "user1"
+password = "password"
+host = "smtp.example.ru"
+port = "587"
+
+[email]
+from = "Служба проверки доменов <user1@example.ru>"
+to = ["receiver@www.example.ru"]
+subject = "Test"

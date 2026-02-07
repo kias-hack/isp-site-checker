@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"mime"
 	"net/mail"
 	"net/smtp"
@@ -11,6 +12,8 @@ import (
 
 	"golang.org/x/net/idna"
 )
+
+//go:generate mockgen -source=smtp.go -destination=mock_smtp.go -package=notify
 
 type SmtpSendMailFunc func(addr string, a smtp.Auth, from string, to []string, msg []byte) error
 
@@ -39,8 +42,8 @@ type mailSender struct {
 	smtpFunc SmtpSendMailFunc
 }
 
-func (m *mailSender) Send(ctx context.Context, mail *Mail) error {
-	body, err := buildMailBody(mail)
+func (m *mailSender) Send(ctx context.Context, email *Mail) error {
+	body, err := buildMailBody(email)
 	if err != nil {
 		return fmt.Errorf("ошибка при формировании тела письма: %w", err)
 	}
@@ -48,8 +51,13 @@ func (m *mailSender) Send(ctx context.Context, mail *Mail) error {
 	errChan := make(chan error)
 
 	go func() {
-		errChan <- m.smtpFunc(m.addr, m.auth, mail.From, mail.To, []byte(body))
-		close(errChan)
+		defer close(errChan)
+		slog.Debug("отправляю письмо", "msg", body)
+		address, err := mail.ParseAddress(email.From)
+		if err != nil {
+			errChan <- err
+		}
+		errChan <- m.smtpFunc(m.addr, m.auth, address.Address, email.To, []byte(body))
 	}()
 
 	select {
@@ -118,13 +126,14 @@ func buildMailBody(email *Mail) (string, error) {
 
 	builder.WriteString(fmt.Sprintf("Subject: %s\n", mime.BEncoding.Encode("UTF-8", email.Subject)))
 	builder.WriteString("Content-Type: text/plain; charset=UTF-8\n")
-	builder.WriteString("Content-Type-Encoding: base64\n")
+	builder.WriteString("Content-Transfer-Encoding: base64\n")
 
 	if email.Message == "" {
 		return "", fmt.Errorf("body can`t be empty")
 	}
 
-	builder.WriteString(fmt.Sprintf("\n%s", base64.StdEncoding.EncodeToString([]byte(email.Message))))
+	builder.WriteString("\n")
+	builder.WriteString(base64.StdEncoding.EncodeToString([]byte(email.Message)))
 
 	return builder.String(), nil
 }

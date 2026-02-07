@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/smtp"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/kias-hack/isp-site-checker/internal/checker"
 	"github.com/kias-hack/isp-site-checker/internal/config"
+	"github.com/kias-hack/isp-site-checker/internal/isp"
 	"github.com/kias-hack/isp-site-checker/internal/notify"
 )
 
@@ -24,7 +26,12 @@ func main() {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
 
-	chk := checker.NewChecker(cfg, notify.NewNotifier(cfg))
+	sender := notify.NewMailSender(cfg.SMTP.Host, cfg.SMTP.Port, cfg.SMTP.Username, cfg.SMTP.Password, smtp.SendMail)
+	webDomainsFunc := func() ([]*isp.WebDomain, error) {
+		return isp.GetWebDomains(cfg.MgrCtlPath)
+	}
+
+	chk := checker.NewChecker(cfg, notify.NewNotifier(cfg, sender), webDomainsFunc)
 
 	if err := chk.Start(); err != nil {
 		slog.Error("произошла ошибка запуска приложения", "err", err)

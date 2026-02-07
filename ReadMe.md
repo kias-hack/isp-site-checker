@@ -15,28 +15,24 @@ go run cmd/app/main.go -config config/config.toml [-debug]
 ## Конфигурация
 
 ```toml
-scrape_interval = "60s"
-mgrctl_path = "/usr/local/mgr5/sbin/mgrctl"
-recipient = "admin@example.com"
+mgrctl_path = "path/to/mgrctl"
+
+scrape_interval = "10s"
+send_interval = "10s"
 
 [smtp]
-username = "user@example.com"
+username = "user1"
 password = "password"
-host = "smtp.example.com"
-port = 465
-from = "noreply@example.com"
+host = "smtp.example.ru"
+port = "587"
+
+[email]
+from = "Служба проверки доменов <user1@example.ru>"
+to = ["receiver@www.example.ru"]
+subject = "Test"
 ```
 
 ## TODO
-
-### Улучшения
-- Добавить операционные теги в логирование (op: "notification", op: "check")
-- Добавить автотест проверки ограничения частоты отправки уведомлений
-- Добавить автотест проверки отправки уведомления о восстановлении доступности
-
-### Тестирование notifier
-- Автотест отслеживания состояния сайта (fail → success → не шлём лишнее, success после fail — шлём восстановление)
-- Автотест дедупликации (не слать повторное уведомление об одном и том же fail/success в рамках окна)
 
 ### Баги
 - Обработать дублирование поддоменов (когда поддомен создан отдельно в панели)

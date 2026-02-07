@@ -83,24 +83,12 @@ func TestGetWebdomainsFailure(t *testing.T) {
 
 func TestSendTasks(t *testing.T) {
 	wg := &sync.WaitGroup{}
-
-	ctx, cancel := context.WithCancel(t.Context())
-
-	wg.Add(1)
 	ticker := make(chan struct{})
 	taskPipe := make(chan *Task)
 	defer func() {
 		close(ticker)
 		close(taskPipe)
 	}()
-
-	var getDomains = func() []*isp.WebDomain {
-		return nil
-	}
-
-	go scheduler(ctx, wg, ticker, taskPipe, func() ([]*isp.WebDomain, error) {
-		return getDomains(), nil
-	})
 
 	testCases := []struct {
 		name    string
@@ -227,13 +215,14 @@ func TestSendTasks(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			getDomains = func() []*isp.WebDomain {
-				return testCase.domains
-			}
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			wg.Add(1)
+			go scheduler(ctx, wg, ticker, taskPipe, func() ([]*isp.WebDomain, error) {
+				return testCase.domains, nil
+			})
+
 			ticker <- struct{}{}
-
-			time.Sleep(10 * time.Millisecond)
-
 			timer := time.NewTimer(1 * time.Second)
 
 			for _, expectedTask := range testCase.tasks {
@@ -254,6 +243,16 @@ func TestSendTasks(t *testing.T) {
 		})
 	}
 
-	cancel()
-	wg.Wait()
+	wait := make(chan struct{})
+	timer := time.NewTimer(200 * time.Millisecond)
+	defer timer.Stop()
+	go func() {
+		wg.Wait()
+		close(wait)
+	}()
+	select {
+	case <-wait:
+	case <-timer.C:
+		t.Fatal("timeout")
+	}
 }

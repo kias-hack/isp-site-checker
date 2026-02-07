@@ -42,15 +42,12 @@ func TestResultHandlerLifecycle(t *testing.T) {
 }
 
 func TestResultCases(t *testing.T) {
-	ctx, cancel := context.WithCancel(t.Context())
+
 	resultPipe := make(chan *Task)
 	wg := &sync.WaitGroup{}
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	notifierMock := notify.NewMockNotifier(ctrl)
-
-	wg.Add(1)
-	go resultHandler(ctx, wg, resultPipe, notifierMock)
 
 	testCases := []struct {
 		name           string
@@ -71,10 +68,10 @@ func TestResultCases(t *testing.T) {
 					Err        error
 					Timestamp  time.Time
 				}{
-					StatusCode: http.StatusForbidden,
+					StatusCode: http.StatusUnauthorized,
 				},
 			},
-			expectedText: "Сайт example.com закрыт - 403\r\nВладелец - root",
+			expectedText: "Сайт example.com закрыт - 401\r\nВладелец - root",
 		},
 		{
 			name:           "200 - ok",
@@ -99,6 +96,11 @@ func TestResultCases(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			wg.Add(1)
+			go resultHandler(ctx, wg, resultPipe, notifierMock)
+			defer cancel()
+
 			if testCase.expectedMethod == "Fail" {
 				notifierMock.EXPECT().Fail(testCase.task.Site, testCase.expectedText).Times(1)
 			} else {
@@ -114,8 +116,6 @@ func TestResultCases(t *testing.T) {
 			resultPipe <- testCase.task
 		})
 	}
-
-	cancel()
 
 	exit := make(chan struct{})
 	go func() {

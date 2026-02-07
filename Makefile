@@ -2,7 +2,8 @@ toolgen:
 	go build -o mgrctl cmd/mgrctl-test/main.go
 
 run:
-	go run cmd/app/main.go -config config/config.toml -debug
+	# go run cmd/app/main.go -config config/config.toml -debug
+	go run cmd/app/main.go -config config/config.toml
 
 test:
 	go test -v ./...

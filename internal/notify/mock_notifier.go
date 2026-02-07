@@ -10,6 +10,7 @@
 package notify
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -49,6 +50,20 @@ func (m *MockNotifier) Fail(site, message string) {
 func (mr *MockNotifierMockRecorder) Fail(site, message any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fail", reflect.TypeOf((*MockNotifier)(nil).Fail), site, message)
+}
+
+// Stop mocks base method.
+func (m *MockNotifier) Stop(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Stop", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Stop indicates an expected call of Stop.
+func (mr *MockNotifierMockRecorder) Stop(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stop", reflect.TypeOf((*MockNotifier)(nil).Stop), arg0)
 }
 
 // Success mocks base method.

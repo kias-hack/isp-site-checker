@@ -16,17 +16,22 @@ type Config struct {
 	DebugMode      bool
 	ScrapeInterval time.Duration `toml:"scrape_interval"`
 
-	Recipient string `toml:"recipient"`
-
 	SMTP struct {
-		Host         string        `toml:"host"`
-		Port         int           `toml:"port"`
-		Username     string        `toml:"username"`
-		Password     string        `toml:"password"`
-		From         string        `toml:"from"`
-		SendInterval time.Duration `toml:"send_interval"`
-		SendTimeout  time.Duration `toml:"send_timeout"`
+		Host     string `toml:"host"`
+		Port     string `toml:"port"`
+		Username string `toml:"username"`
+		Password string `toml:"password"`
 	}
+
+	EMail struct {
+		From    string   `toml:"from"`
+		To      []string `toml:"to"`
+		Subject string   `toml:"subject"`
+	}
+
+	SendInterval   time.Duration `toml:"send_interval"`
+	SendTimeout    time.Duration `toml:"send_timeout"`
+	RepeatInterval time.Duration `toml:"repeat_interval"`
 }
 
 func LoadConfig() (*Config, error) {
@@ -62,23 +67,27 @@ func LoadConfig() (*Config, error) {
 		cfg.MgrCtlPath = isp.MGR_CTL_PATH_DEFAULT
 	}
 
-	if cfg.Recipient == "" {
-		return nil, fmt.Errorf("получатель в настройках обязателен")
-	}
-
-	if cfg.SMTP.From == "" || cfg.SMTP.Host == "" || cfg.SMTP.Password == "" || cfg.SMTP.Port <= 0 || cfg.SMTP.Username == "" {
+	if cfg.SMTP.Host == "" || cfg.SMTP.Password == "" || cfg.SMTP.Port == "" || cfg.SMTP.Username == "" {
 		return nil, fmt.Errorf("проверьте настройки SMTP")
 	}
 
-	if cfg.SMTP.SendInterval.Seconds() == 0 {
-		cfg.SMTP.SendInterval = time.Minute * 1
+	if cfg.EMail.From == "" || len(cfg.EMail.To) == 0 || cfg.EMail.Subject == "" {
+		return nil, fmt.Errorf("проверьте настройки письма")
 	}
 
-	if cfg.SMTP.SendTimeout.Seconds() == 0 {
-		cfg.SMTP.SendTimeout = time.Second * 2
+	if cfg.SendInterval.Seconds() == 0 {
+		cfg.SendInterval = time.Minute * 1
 	}
 
-	if cfg.SMTP.SendInterval.Seconds()-cfg.SMTP.SendTimeout.Seconds() <= 2 {
+	if cfg.RepeatInterval.Minutes() == 0 {
+		cfg.RepeatInterval = time.Hour * 4
+	}
+
+	if cfg.SendTimeout.Seconds() == 0 {
+		cfg.SendTimeout = time.Second * 2
+	}
+
+	if cfg.SendInterval.Seconds()-cfg.SendTimeout.Seconds() <= 2 {
 		return nil, fmt.Errorf("интервалом должен быть больше таймаута более чем на 2 секунды")
 	}
 

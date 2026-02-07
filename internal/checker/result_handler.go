@@ -19,7 +19,7 @@ func resultHandler(ctx context.Context, wg *sync.WaitGroup, resultPipe <-chan *T
 		case task := <-resultPipe:
 			logger := slog.With("component", "resultHandler", "site", task.Site, "owner", task.Owner)
 
-			if task.Result.Err == nil && task.Result.StatusCode == http.StatusForbidden {
+			if task.Result.Err == nil && task.Result.StatusCode == http.StatusUnauthorized {
 				notifier.Success(task.Site, fmt.Sprintf("Сайт %s закрыт - %d\r\nВладелец - %s", task.Site, task.Result.StatusCode, task.Owner))
 				logger.Debug("получен результат, сайт закрыт")
 				continue
