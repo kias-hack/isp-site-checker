@@ -80,7 +80,7 @@ func BuildMailBody(email *Mail) (string, error) {
 		fromStr = fmt.Sprintf("%s <%s>", mime.BEncoding.Encode("UTF-8", from.Name), fmt.Sprintf("%s@%s", chunks[0], punyDomain))
 	}
 
-	builder.WriteString(fmt.Sprintf("From: %s\n", fromStr))
+	builder.WriteString(fmt.Sprintf("From: %s\r\n", fromStr))
 
 	if len(email.To) == 0 {
 		return "", fmt.Errorf("receiver can`t be empty")
@@ -103,22 +103,33 @@ func BuildMailBody(email *Mail) (string, error) {
 		toList = append(toList, fmt.Sprintf("%s@%s", chunks[0], receiverPunycode))
 	}
 
-	builder.WriteString(fmt.Sprintf("To: %s\n", strings.Join(toList, ", ")))
+	builder.WriteString(fmt.Sprintf("To: %s\r\n", strings.Join(toList, ", ")))
 
 	if email.Subject == "" {
 		return "", fmt.Errorf("subject can`t be empty")
 	}
 
-	builder.WriteString(fmt.Sprintf("Subject: %s\n", mime.BEncoding.Encode("UTF-8", email.Subject)))
-	builder.WriteString("Content-Type: text/plain; charset=UTF-8\n")
-	builder.WriteString("Content-Transfer-Encoding: base64\n")
+	builder.WriteString(fmt.Sprintf("Subject: %s\r\n", mime.BEncoding.Encode("UTF-8", email.Subject)))
+	builder.WriteString("Content-Type: text/plain; charset=UTF-8\r\n")
+	builder.WriteString("Content-Transfer-Encoding: base64\r\n")
 
 	if email.Message == "" {
 		return "", fmt.Errorf("body can`t be empty")
 	}
 
-	builder.WriteString("\n")
-	builder.WriteString(base64.StdEncoding.EncodeToString([]byte(email.Message)))
+	builder.WriteString("\r\n")
+
+	encoded := base64.StdEncoding.EncodeToString([]byte(email.Message))
+
+	step := 75
+	for n := 0; n < len(encoded); n += step {
+		end := n + step
+		if end > len(encoded) {
+			end = len(encoded)
+		}
+		builder.WriteString(encoded[n:end])
+		builder.WriteString("\r\n")
+	}
 
 	return builder.String(), nil
 }

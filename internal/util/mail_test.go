@@ -81,15 +81,9 @@ func TestBuildMailBody(t *testing.T) {
 				Subject: "test",
 				Message: "Test",
 			},
-			expectedOut: `From: me@example.com
-To: s@example.com
-Subject: test
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
-
-VGVzdA==`,
-			errText: "",
-			isErr:   false,
+			expectedOut: "From: me@example.com\r\nTo: s@example.com\r\nSubject: test\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\nVGVzdA==\r\n",
+			errText:     "",
+			isErr:       false,
 		},
 		{
 			name: "successful build with multiple recipients",
@@ -99,15 +93,9 @@ VGVzdA==`,
 				Subject: "test",
 				Message: "Test",
 			},
-			expectedOut: `From: me@example.com
-To: s@example.com, w@example.com
-Subject: test
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
-
-VGVzdA==`,
-			errText: "",
-			isErr:   false,
+			expectedOut: "From: me@example.com\r\nTo: s@example.com, w@example.com\r\nSubject: test\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\nVGVzdA==\r\n",
+			errText:     "",
+			isErr:       false,
 		},
 		{
 			name: "subject with non-ASCII characters",
@@ -117,15 +105,9 @@ VGVzdA==`,
 				Subject: "test с русскими символами",
 				Message: "Test",
 			},
-			expectedOut: `From: me@example.com
-To: s@example.com
-Subject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
-
-VGVzdA==`,
-			errText: "",
-			isErr:   false,
+			expectedOut: "From: me@example.com\r\nTo: s@example.com\r\nSubject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\nVGVzdA==\r\n",
+			errText:     "",
+			isErr:       false,
 		},
 		{
 			name: "mail with sender display name",
@@ -135,15 +117,9 @@ VGVzdA==`,
 				Subject: "test с русскими символами",
 				Message: "Test",
 			},
-			expectedOut: `From: =?UTF-8?b?0J7RgtC/0YDQsNCy0LjRgtC10LvRjCDQv9C40YHRjNC80LA=?= <sender@example.com>
-To: s@example.com
-Subject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
-
-VGVzdA==`,
-			errText: "",
-			isErr:   false,
+			expectedOut: "From: =?UTF-8?b?0J7RgtC/0YDQsNCy0LjRgtC10LvRjCDQv9C40YHRjNC80LA=?= <sender@example.com>\r\nTo: s@example.com\r\nSubject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\nVGVzdA==\r\n",
+			errText:     "",
+			isErr:       false,
 		},
 		{
 			name: "sender with IDN domain",
@@ -153,15 +129,9 @@ VGVzdA==`,
 				Subject: "test с русскими символами",
 				Message: "Test",
 			},
-			expectedOut: `From: =?UTF-8?b?0J7RgtC/0YDQsNCy0LjRgtC10LvRjCDQv9C40YHRjNC80LA=?= <sender@xn--e1aybc.xn--p1ai>
-To: s@example.com
-Subject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
-
-VGVzdA==`,
-			errText: "",
-			isErr:   false,
+			expectedOut: "From: =?UTF-8?b?0J7RgtC/0YDQsNCy0LjRgtC10LvRjCDQv9C40YHRjNC80LA=?= <sender@xn--e1aybc.xn--p1ai>\r\nTo: s@example.com\r\nSubject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\nVGVzdA==\r\n",
+			errText:     "",
+			isErr:       false,
 		},
 		{
 			name: "single IDN recipient",
@@ -171,15 +141,9 @@ VGVzdA==`,
 				Subject: "test с русскими символами",
 				Message: "Test",
 			},
-			expectedOut: `From: =?UTF-8?b?0J7RgtC/0YDQsNCy0LjRgtC10LvRjCDQv9C40YHRjNC80LA=?= <sender@xn--e1aybc.xn--p1ai>
-To: sender@xn--e1aybc.xn--p1ai
-Subject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
-
-VGVzdA==`,
-			errText: "",
-			isErr:   false,
+			expectedOut: "From: =?UTF-8?b?0J7RgtC/0YDQsNCy0LjRgtC10LvRjCDQv9C40YHRjNC80LA=?= <sender@xn--e1aybc.xn--p1ai>\r\nTo: sender@xn--e1aybc.xn--p1ai\r\nSubject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\nVGVzdA==\r\n",
+			errText:     "",
+			isErr:       false,
 		},
 		{
 			name: "multiple IDN recipients",
@@ -189,15 +153,9 @@ VGVzdA==`,
 				Subject: "test с русскими символами",
 				Message: "Test",
 			},
-			expectedOut: `From: =?UTF-8?b?0J7RgtC/0YDQsNCy0LjRgtC10LvRjCDQv9C40YHRjNC80LA=?= <sender@xn--e1aybc.xn--p1ai>
-To: sender@xn--e1aybc.xn--p1ai, test@xn--e1aybc.xn--p1ai
-Subject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
-
-VGVzdA==`,
-			errText: "",
-			isErr:   false,
+			expectedOut: "From: =?UTF-8?b?0J7RgtC/0YDQsNCy0LjRgtC10LvRjCDQv9C40YHRjNC80LA=?= <sender@xn--e1aybc.xn--p1ai>\r\nTo: sender@xn--e1aybc.xn--p1ai, test@xn--e1aybc.xn--p1ai\r\nSubject: =?UTF-8?b?dGVzdCDRgSDRgNGD0YHRgdC60LjQvNC4INGB0LjQvNCy0L7Qu9Cw0LzQuA==?=\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\nVGVzdA==\r\n",
+			errText:     "",
+			isErr:       false,
 		},
 	}
 
