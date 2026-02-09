@@ -90,7 +90,7 @@ func TestResultCases(t *testing.T) {
 					Timestamp:  time.Date(2026, 2, 6, 1, 1, 1, 1, time.UTC),
 				},
 			},
-			expectedText: "Проверка домена выявила проблему\nСайт: example.com\nВладелец: root\nВремя: 2026-02-06 01:01:01.000000001 +0000 UTC\nКод ответа: 200",
+			expectedText: "Проверка домена выявила проблему\nСайт: example.com\nВладелец: root\nВремя: 06.02.2026 01:01:01\nКод ответа: 200",
 		},
 	}
 

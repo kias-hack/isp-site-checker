@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/kias-hack/isp-site-checker/internal/config"
+	"github.com/kias-hack/isp-site-checker/internal/util"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
 	"go.uber.org/mock/gomock"
 )
@@ -49,7 +51,7 @@ func TestNotifierStopByContextWhileWaitingSendMail(t *testing.T) {
 		close(wait)
 		ctrl.Finish()
 	}()
-	sender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *Mail) error {
+	sender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *util.Mail) error {
 		wait <- struct{}{}
 		<-wait
 
@@ -121,7 +123,7 @@ func TestNotifierSendMessageWithError(t *testing.T) {
 	ctrl, sender := newMockSender(t)
 	defer ctrl.Finish()
 	var errCounter int
-	sender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *Mail) error {
+	sender.EXPECT().Send(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ *util.Mail) error {
 		if errCounter == NUM_ERRORS {
 			return nil
 		}
@@ -205,6 +207,36 @@ func TestNotifierComplexBehaviour(t *testing.T) {
 	notifier.ticker <- struct{}{}
 	notifier.ticker <- struct{}{}
 
+	stopNotifier(t, notifier)
+}
+
+func TestNotifierSendMoreThan1Message(t *testing.T) {
+	ctrl, sender := newMockSender(t)
+	defer ctrl.Finish()
+	sender.EXPECT().Send(gomock.Any(), gomock.Any()).Times(1)
+	notifier := &notifier{
+		wg:             &sync.WaitGroup{},
+		timeout:        1 * time.Millisecond,
+		interval:       1 * time.Millisecond,
+		repeatInterval: time.Hour,
+		ticker:         make(chan struct{}),
+		stop:           make(chan struct{}),
+		mailSender:     sender,
+		sitesMap:       make(map[string]*SiteNotification),
+	}
+	notifier.wg.Add(1)
+	go notifier.worker()
+
+	notifier.Fail("site", "message")
+	notifier.Fail("site1", "message")
+	notifier.Fail("site2", "message")
+	notifier.ticker <- struct{}{}
+	notifier.ticker <- struct{}{}
+	notifier.ticker <- struct{}{}
+
+	assert.False(t, notifier.sitesMap["site"].NeedNotify)
+	assert.False(t, notifier.sitesMap["site1"].NeedNotify)
+	assert.False(t, notifier.sitesMap["site2"].NeedNotify)
 	stopNotifier(t, notifier)
 }
 

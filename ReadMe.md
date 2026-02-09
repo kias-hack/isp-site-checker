@@ -21,16 +21,20 @@ scrape_interval = "10s"
 send_interval = "10s"
 
 [smtp]
-username = "user1"
+email = "user@example.ru"
 password = "password"
 host = "smtp.example.ru"
 port = "587"
 
 [email]
-from = "Служба проверки доменов <user1@example.ru>"
-to = ["receiver@www.example.ru"]
-subject = "Test"
+from = "Служба проверки доменов <user@example.ru>"
+to = ["receiver@example.ru"]
+subject = "Тема письма"
 ```
+
+- **smtp.email** — полный адрес для авторизации на SMTP (для Яндекса и др. обязателен формат user@domain).
+- **smtp.host** — необязателен: если не указан, подставляется MX-хост домена из `email` (например smtp.yandex.ru для @yandex.ru).
+- **send_timeout** — таймаут одной попытки отправки письма. **send_interval** должен быть больше **send_timeout** минимум на 2 секунды.
 
 ## TODO
 

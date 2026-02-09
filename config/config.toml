@@ -1,13 +1,15 @@
-mgrctl_path = "path/to/mgrctl"
+mgrctl_path = "/path/to/mgrctl"
 
 scrape_interval = "10s"
 send_interval = "10s"
+send_timeout = "2s"
 
 [smtp]
-username = "user1"
-password = "password"
-host = "smtp.example.ru"
+email = "dev@example.ru"                                                                                                                                                 
+password = "test"    
+#host = "smtp.example.ru"                                                                                                                                              
 port = "587"
+use_tls = true
 
 [email]
 from = "Служба проверки доменов <user1@example.ru>"

@@ -5,10 +5,12 @@ package notify
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/kias-hack/isp-site-checker/internal/config"
+	"github.com/kias-hack/isp-site-checker/internal/util"
 )
 
 type siteStatus string
@@ -212,17 +214,27 @@ func (n *notifier) worker() {
 			}
 			n.mu.Unlock()
 
-			for _, item := range toNotify {
-				ctx, cancel := context.WithTimeout(context.Background(), n.timeout)
+			if len(toNotify) == 0 {
+				continue
+			}
 
-				if err := n.mailSender.Send(ctx, &Mail{
-					Subject: n.mailSettings.Subject,
-					From:    n.mailSettings.From,
-					To:      n.mailSettings.To,
-					Message: item.message,
-				}); err != nil {
-					slog.Error("notification send failed", "err", err)
-				} else {
+			message := strings.Builder{}
+			for _, item := range toNotify {
+				message.WriteString(item.message)
+				message.WriteString("\r\n=============================\r\n")
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), n.timeout)
+
+			if err := n.mailSender.Send(ctx, &util.Mail{
+				Subject: n.mailSettings.Subject,
+				From:    n.mailSettings.From,
+				To:      n.mailSettings.To,
+				Message: message.String(),
+			}); err != nil {
+				slog.Error("notification send failed", "err", err)
+			} else {
+				for _, item := range toNotify {
 					n.mu.Lock()
 					info, ok := n.sitesMap[item.site]
 					if ok {
@@ -234,9 +246,9 @@ func (n *notifier) worker() {
 					}
 					n.mu.Unlock()
 				}
-
-				cancel()
 			}
+
+			cancel()
 		case <-n.stop:
 			return
 		}

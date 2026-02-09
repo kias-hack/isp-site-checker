@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	"github.com/kias-hack/isp-site-checker/internal/util"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,7 +42,7 @@ func (m *MockMailSender) EXPECT() *MockMailSenderMockRecorder {
 }
 
 // Send mocks base method.
-func (m *MockMailSender) Send(ctx context.Context, mail *Mail) error {
+func (m *MockMailSender) Send(ctx context.Context, mail *util.Mail) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", ctx, mail)
 	ret0, _ := ret[0].(error)

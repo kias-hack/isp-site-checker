@@ -1,13 +1,13 @@
 package config
 
 import (
-	"flag"
 	"fmt"
 	"log/slog"
 	"os"
 	"time"
 
 	"github.com/kias-hack/isp-site-checker/internal/isp"
+	"github.com/kias-hack/isp-site-checker/internal/util"
 	"github.com/pelletier/go-toml"
 )
 
@@ -19,8 +19,9 @@ type Config struct {
 	SMTP struct {
 		Host     string `toml:"host"`
 		Port     string `toml:"port"`
-		Username string `toml:"username"`
+		Username string `toml:"email"`
 		Password string `toml:"password"`
+		UseTLS   bool   `toml:"use_tls"`
 	}
 
 	EMail struct {
@@ -34,17 +35,10 @@ type Config struct {
 	RepeatInterval time.Duration `toml:"repeat_interval"`
 }
 
-func LoadConfig() (*Config, error) {
+func LoadConfig(configPath string, resolverFunc util.MXResolverFunc) (*Config, error) {
 	slog.Info("start create config")
 
 	cfg := &Config{}
-
-	var configPath string
-
-	flag.StringVar(&configPath, "config", "", "")
-	flag.BoolVar(&cfg.DebugMode, "debug", false, "")
-
-	flag.Parse()
 
 	if configPath == "" {
 		panic(fmt.Errorf("config file path is required"))
@@ -67,8 +61,18 @@ func LoadConfig() (*Config, error) {
 		cfg.MgrCtlPath = isp.MGR_CTL_PATH_DEFAULT
 	}
 
-	if cfg.SMTP.Host == "" || cfg.SMTP.Password == "" || cfg.SMTP.Port == "" || cfg.SMTP.Username == "" {
+	if cfg.SMTP.Password == "" || cfg.SMTP.Port == "" || cfg.SMTP.Username == "" {
 		return nil, fmt.Errorf("check SMTP settings")
+	}
+
+	if cfg.SMTP.Host == "" {
+		host, err := resolverFunc(cfg.SMTP.Username)
+		if err != nil {
+			return nil, fmt.Errorf("failed fill username and host: %w", err)
+		}
+
+		cfg.SMTP.Host = host
+		// cfg.SMTP.Username = username
 	}
 
 	if cfg.EMail.From == "" || len(cfg.EMail.To) == 0 || cfg.EMail.Subject == "" {

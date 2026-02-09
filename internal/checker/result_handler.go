@@ -32,7 +32,7 @@ func resultHandler(ctx context.Context, wg *sync.WaitGroup, resultPipe <-chan *T
 			msg.WriteString("Проверка домена выявила проблему\n")
 			msg.WriteString(fmt.Sprintf("Сайт: %s\n", task.Site))
 			msg.WriteString(fmt.Sprintf("Владелец: %s\n", task.Owner))
-			msg.WriteString(fmt.Sprintf("Время: %s\n", task.Result.Timestamp))
+			msg.WriteString(fmt.Sprintf("Время: %s\n", task.Result.Timestamp.Format("02.01.2006 15:04:05")))
 
 			if task.Result.Err != nil {
 				logger.Debug("error in result", "err", task.Result.Err)

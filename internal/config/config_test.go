@@ -1,7 +1,6 @@
 package config
 
 import (
-	"flag"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,11 +17,9 @@ scrape_interval = "60s"
 mgrctl_path = "/usr/local/mgr5/sbin/mgrctl"
 
 [smtp]
-username = "test@test.tu"
+email = "test@test.tu"
 password = "hello-world"
-host = "mail.yandex.ru"
 port = "465"
-from = "test@test.tu"
 
 [email]
 to = ["test@example.com"]
@@ -35,17 +32,9 @@ from = "test@test.tu"
 		t.Fatal(err)
 	}
 
-	oldArgs := os.Args
-	oldCommandLine := flag.CommandLine
-	defer func() {
-		os.Args = oldArgs
-		flag.CommandLine = oldCommandLine
-	}()
-
-	os.Args = []string{"cmd", "-config", configPath}
-	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-
-	cfg, err := LoadConfig()
+	cfg, err := LoadConfig(configPath, func(email string) (host string, err error) {
+		return "mail.test.tu", nil
+	})
 	if err != nil {
 		t.Fatalf("failed to load config: %v", err)
 	}
@@ -57,7 +46,7 @@ from = "test@test.tu"
 	assert.Equal(t, "subject", cfg.EMail.Subject)
 	assert.Equal(t, "test@test.tu", cfg.SMTP.Username)
 	assert.Equal(t, "hello-world", cfg.SMTP.Password)
-	assert.Equal(t, "mail.yandex.ru", cfg.SMTP.Host)
+	assert.Equal(t, "mail.test.tu", cfg.SMTP.Host)
 	assert.Equal(t, "465", cfg.SMTP.Port)
 }
 
@@ -67,9 +56,8 @@ func TestLoadConfig_Defaults(t *testing.T) {
 
 	configContent := `
 [smtp]
-username = "test@test.tu"
+email = "test@test.tu"
 password = "hello-world"
-host = "mail.yandex.ru"
 port = "465"
 
 [email]
@@ -83,17 +71,9 @@ from = "test@test.tu"
 		t.Fatal(err)
 	}
 
-	oldArgs := os.Args
-	oldCommandLine := flag.CommandLine
-	defer func() {
-		os.Args = oldArgs
-		flag.CommandLine = oldCommandLine
-	}()
-
-	os.Args = []string{"cmd", "-config", configPath}
-	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-
-	cfg, err := LoadConfig()
+	cfg, err := LoadConfig(configPath, func(email string) (host string, err error) {
+		return "mail.test.tu", nil
+	})
 
 	assert.Nil(t, err)
 	assert.Equal(t, "/usr/local/mgr5/sbin/mgrctl", cfg.MgrCtlPath)
@@ -103,7 +83,45 @@ from = "test@test.tu"
 	assert.Equal(t, "subject", cfg.EMail.Subject)
 	assert.Equal(t, "test@test.tu", cfg.SMTP.Username)
 	assert.Equal(t, "hello-world", cfg.SMTP.Password)
-	assert.Equal(t, "mail.yandex.ru", cfg.SMTP.Host)
+	assert.Equal(t, "mail.test.tu", cfg.SMTP.Host)
+	assert.Equal(t, "465", cfg.SMTP.Port)
+}
+
+func TestLoadConfig_AlternativeSMTPHost(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.toml")
+
+	configContent := `
+[smtp]
+email = "test@test.tu"
+password = "hello-world"
+host = "smtp.somehost.tu"
+port = "465"
+
+[email]
+to = ["test@example.com"]
+subject = "subject"
+from = "test@test.tu"
+`
+
+	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := LoadConfig(configPath, func(email string) (host string, err error) {
+		return "mail.test.tu", nil
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, "/usr/local/mgr5/sbin/mgrctl", cfg.MgrCtlPath)
+	assert.Equal(t, "1m0s", cfg.ScrapeInterval.String())
+	assert.Equal(t, "test@test.tu", cfg.EMail.From)
+	assert.Equal(t, []string{"test@example.com"}, cfg.EMail.To)
+	assert.Equal(t, "subject", cfg.EMail.Subject)
+	assert.Equal(t, "test@test.tu", cfg.SMTP.Username)
+	assert.Equal(t, "hello-world", cfg.SMTP.Password)
+	assert.Equal(t, "smtp.somehost.tu", cfg.SMTP.Host)
 	assert.Equal(t, "465", cfg.SMTP.Port)
 }
 
@@ -113,9 +131,8 @@ func TestLoadConfig_EmptyRecipient(t *testing.T) {
 
 	configContent := `
 [smtp]
-username = "test@test.tu"
+email = "test@test.tu"
 password = "hello-world"
-host = "mail.yandex.ru"
 port = "465"
 `
 
@@ -124,17 +141,9 @@ port = "465"
 		t.Fatal(err)
 	}
 
-	oldArgs := os.Args
-	oldCommandLine := flag.CommandLine
-	defer func() {
-		os.Args = oldArgs
-		flag.CommandLine = oldCommandLine
-	}()
-
-	os.Args = []string{"cmd", "-config", configPath}
-	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-
-	_, err = LoadConfig()
+	_, err = LoadConfig(configPath, func(email string) (host string, err error) {
+		return "mail.test.tu", nil
+	})
 	assert.Error(t, err)
 }
 
@@ -151,17 +160,9 @@ recipient = "test@test.ru"
 		t.Fatal(err)
 	}
 
-	oldArgs := os.Args
-	oldCommandLine := flag.CommandLine
-	defer func() {
-		os.Args = oldArgs
-		flag.CommandLine = oldCommandLine
-	}()
-
-	os.Args = []string{"cmd", "-config", configPath}
-	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-
-	_, err = LoadConfig()
+	_, err = LoadConfig(configPath, func(email string) (host string, err error) {
+		return "mail.test.tu", nil
+	})
 	assert.Error(t, err)
 }
 
@@ -171,11 +172,9 @@ func TestLoadConfig_EmptySMTPTimeoutAndInterval(t *testing.T) {
 
 	configContent := `
 [smtp]
-username = "test@test.tu"
+email = "test@test.tu"
 password = "hello-world"
-host = "mail.yandex.ru"
 port = "465"
-from = "test@test.tu"
 
 [email]
 to = ["test@example.com"]
@@ -188,17 +187,9 @@ from = "test@test.tu"
 		t.Fatal(err)
 	}
 
-	oldArgs := os.Args
-	oldCommandLine := flag.CommandLine
-	defer func() {
-		os.Args = oldArgs
-		flag.CommandLine = oldCommandLine
-	}()
-
-	os.Args = []string{"cmd", "-config", configPath}
-	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-
-	cfg, err := LoadConfig()
+	cfg, err := LoadConfig(configPath, func(email string) (host string, err error) {
+		return "mail.test.tu", nil
+	})
 	if err != nil {
 		t.Fatalf("config load error: %v", err)
 	}
