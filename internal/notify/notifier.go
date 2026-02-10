@@ -218,11 +218,11 @@ func (n *notifier) worker() {
 				continue
 			}
 
-			message := strings.Builder{}
+			var messages []string
 			for _, item := range toNotify {
-				message.WriteString(item.message)
-				message.WriteString("\r\n=============================\r\n")
+				messages = append(messages, item.message)
 			}
+			body := strings.Join(messages, "\n=============================\n")
 
 			ctx, cancel := context.WithTimeout(context.Background(), n.timeout)
 
@@ -230,7 +230,7 @@ func (n *notifier) worker() {
 				Subject: n.mailSettings.Subject,
 				From:    n.mailSettings.From,
 				To:      n.mailSettings.To,
-				Message: message.String(),
+				Message: body,
 			}); err != nil {
 				slog.Error("notification send failed", "err", err)
 			} else {
