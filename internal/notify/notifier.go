@@ -20,8 +20,6 @@ const (
 	Success siteStatus = "success"
 )
 
-const SiteRetentionPeriod = 24 * time.Hour
-
 type SiteNotification struct {
 	Site        string
 	Status      siteStatus
@@ -39,12 +37,13 @@ type Notifier interface {
 
 func NewNotifier(cfg *config.Config, mailSender MailSender) Notifier {
 	n := &notifier{
-		wg:             &sync.WaitGroup{},
-		timeout:        cfg.SendTimeout,
-		interval:       cfg.SendInterval,
-		ticker:         make(chan struct{}),
-		mailSender:     mailSender,
-		repeatInterval: cfg.RepeatInterval,
+		wg:                    &sync.WaitGroup{},
+		timeout:               cfg.SendTimeout,
+		interval:              cfg.SendInterval,
+		ticker:                make(chan struct{}),
+		mailSender:            mailSender,
+		repeatInterval:        cfg.RepeatInterval,
+		siteRetentionInterval: cfg.SiteRetentionInterval,
 		mailSettings: struct {
 			From    string
 			To      []string
@@ -63,13 +62,14 @@ func NewNotifier(cfg *config.Config, mailSender MailSender) Notifier {
 }
 
 type notifier struct {
-	wg             *sync.WaitGroup
-	timeout        time.Duration
-	interval       time.Duration
-	repeatInterval time.Duration
-	stop           chan struct{}
-	mailSender     MailSender
-	ticker         chan struct{}
+	wg                    *sync.WaitGroup
+	timeout               time.Duration
+	interval              time.Duration
+	repeatInterval        time.Duration
+	siteRetentionInterval time.Duration
+	stop                  chan struct{}
+	mailSender            MailSender
+	ticker                chan struct{}
 
 	mu sync.Mutex
 
@@ -197,7 +197,7 @@ func (n *notifier) worker() {
 
 			n.mu.Lock()
 			for site, info := range n.sitesMap {
-				if time.Since(info.LastUpdated) >= SiteRetentionPeriod && info.Status != Fail {
+				if time.Since(info.LastUpdated) >= n.siteRetentionInterval && info.Status != Fail {
 					slog.Debug("cleaning up site record", "site", site, "period", time.Since(info.LastSended))
 					delete(n.sitesMap, site)
 				}

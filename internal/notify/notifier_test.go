@@ -276,20 +276,21 @@ func TestNotifierDeleteOldSites(t *testing.T) {
 	defer ctrl.Finish()
 	sender.EXPECT().Send(gomock.Any(), gomock.Any()).Times(0)
 	notifier := &notifier{
-		wg:             &sync.WaitGroup{},
-		timeout:        1 * time.Millisecond,
-		interval:       1 * time.Millisecond,
-		repeatInterval: time.Hour,
-		ticker:         make(chan struct{}),
-		mailSender:     sender,
-		stop:           make(chan struct{}),
-		sitesMap:       make(map[string]*SiteNotification),
+		wg:                    &sync.WaitGroup{},
+		timeout:               1 * time.Millisecond,
+		interval:              1 * time.Millisecond,
+		repeatInterval:        time.Hour,
+		ticker:                make(chan struct{}),
+		mailSender:            sender,
+		stop:                  make(chan struct{}),
+		sitesMap:              make(map[string]*SiteNotification),
+		siteRetentionInterval: time.Minute * 4,
 	}
 	notifier.wg.Add(1)
 	go notifier.worker()
 
 	notifier.Success("site", "message")
-	notifier.sitesMap["site"].LastUpdated = notifier.sitesMap["site"].LastUpdated.Add(-SiteRetentionPeriod)
+	notifier.sitesMap["site"].LastUpdated = notifier.sitesMap["site"].LastUpdated.Add(-notifier.siteRetentionInterval)
 	notifier.ticker <- struct{}{}
 
 	_, ok := notifier.sitesMap["site"]
@@ -304,22 +305,23 @@ func TestNotifierCheckNoDeletingCases(t *testing.T) {
 	defer ctrl.Finish()
 	sender.EXPECT().Send(gomock.Any(), gomock.Any()).AnyTimes()
 	notifier := &notifier{
-		wg:             &sync.WaitGroup{},
-		timeout:        1 * time.Millisecond,
-		interval:       1 * time.Millisecond,
-		repeatInterval: time.Hour,
-		ticker:         make(chan struct{}),
-		mailSender:     sender,
-		stop:           make(chan struct{}),
-		sitesMap:       make(map[string]*SiteNotification),
+		wg:                    &sync.WaitGroup{},
+		timeout:               1 * time.Millisecond,
+		interval:              1 * time.Millisecond,
+		repeatInterval:        time.Hour,
+		ticker:                make(chan struct{}),
+		mailSender:            sender,
+		stop:                  make(chan struct{}),
+		sitesMap:              make(map[string]*SiteNotification),
+		siteRetentionInterval: time.Minute * 4,
 	}
 	notifier.wg.Add(1)
 	go notifier.worker()
 
 	notifier.Success("site1", "message")
 	notifier.Fail("site2", "message")
-	notifier.sitesMap["site1"].LastUpdated = notifier.sitesMap["site1"].LastUpdated.Add(-SiteRetentionPeriod / 2)
-	notifier.sitesMap["site2"].LastUpdated = notifier.sitesMap["site2"].LastUpdated.Add(-SiteRetentionPeriod).Add(-2 * time.Hour)
+	notifier.sitesMap["site1"].LastUpdated = notifier.sitesMap["site1"].LastUpdated.Add(-notifier.siteRetentionInterval / 2)
+	notifier.sitesMap["site2"].LastUpdated = notifier.sitesMap["site2"].LastUpdated.Add(-notifier.siteRetentionInterval).Add(-2 * time.Hour)
 	notifier.ticker <- struct{}{}
 
 	_, ok := notifier.sitesMap["site1"]

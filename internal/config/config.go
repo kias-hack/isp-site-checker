@@ -12,9 +12,10 @@ import (
 )
 
 type Config struct {
-	MgrCtlPath     string `toml:"mgrctl_path"`
-	DebugMode      bool
-	ScrapeInterval time.Duration `toml:"scrape_interval"`
+	MgrCtlPath            string `toml:"mgrctl_path"`
+	DebugMode             bool
+	ScrapeInterval        time.Duration `toml:"scrape_interval"`
+	SiteRetentionInterval time.Duration `toml:"site_retention_interval"`
 
 	SMTP struct {
 		Host     string `toml:"host"`
@@ -72,7 +73,6 @@ func LoadConfig(configPath string, resolverFunc util.MXResolverFunc) (*Config, e
 		}
 
 		cfg.SMTP.Host = host
-		// cfg.SMTP.Username = username
 	}
 
 	if cfg.EMail.From == "" || len(cfg.EMail.To) == 0 || cfg.EMail.Subject == "" {
@@ -81,6 +81,10 @@ func LoadConfig(configPath string, resolverFunc util.MXResolverFunc) (*Config, e
 
 	if cfg.SendInterval.Seconds() == 0 {
 		cfg.SendInterval = time.Minute * 1
+	}
+
+	if cfg.SiteRetentionInterval.Seconds() == 0 {
+		cfg.SiteRetentionInterval = cfg.ScrapeInterval * 4
 	}
 
 	if cfg.RepeatInterval.Minutes() == 0 {

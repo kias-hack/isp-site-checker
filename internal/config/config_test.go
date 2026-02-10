@@ -84,6 +84,7 @@ from = "test@test.tu"
 	assert.Equal(t, "test@test.tu", cfg.SMTP.Username)
 	assert.Equal(t, "hello-world", cfg.SMTP.Password)
 	assert.Equal(t, "mail.test.tu", cfg.SMTP.Host)
+	assert.Equal(t, "4m0s", cfg.SiteRetentionInterval.String())
 	assert.Equal(t, "465", cfg.SMTP.Port)
 }
 
