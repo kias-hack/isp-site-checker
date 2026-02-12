@@ -197,9 +197,10 @@ func (n *notifier) worker() {
 
 			n.mu.Lock()
 			for site, info := range n.sitesMap {
-				if time.Since(info.LastUpdated) >= n.siteRetentionInterval && info.Status != Fail {
+				if time.Since(info.LastUpdated) >= n.siteRetentionInterval {
 					slog.Debug("cleaning up site record", "site", site, "period", time.Since(info.LastSended))
 					delete(n.sitesMap, site)
+					continue
 				}
 
 				if n.canSendMail(info) {

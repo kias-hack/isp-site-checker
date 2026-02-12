@@ -328,9 +328,10 @@ func TestNotifierCheckNoDeletingCases(t *testing.T) {
 	if !ok {
 		t.Fatalf("site record %s was unexpectedly removed", "site1")
 	}
+	// site2 не обновлялся дольше retention — считаем, что сайт больше не в списке (деактивирован), удаляем
 	_, ok = notifier.sitesMap["site2"]
-	if !ok {
-		t.Fatalf("site record %s was unexpectedly removed", "site2")
+	if ok {
+		t.Fatalf("site record site2 (Fail, past retention) should have been removed")
 	}
 	stopNotifier(t, notifier)
 }
