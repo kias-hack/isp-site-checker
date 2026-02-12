@@ -58,9 +58,10 @@ func TestNotifierStopByContextWhileWaitingSendMail(t *testing.T) {
 		return nil
 	}).Times(1)
 	notifier := NewNotifier(&config.Config{
-		SendInterval:   1 * time.Millisecond,
-		SendTimeout:    100 * time.Millisecond,
-		RepeatInterval: time.Hour,
+		SendInterval:          1 * time.Millisecond,
+		SendTimeout:           100 * time.Millisecond,
+		RepeatInterval:        time.Hour,
+		SiteRetentionInterval: time.Hour,
 	}, sender)
 
 	notifier.Fail("site", "message")
@@ -94,13 +95,14 @@ func TestNotifierDeduplication(t *testing.T) {
 	defer ctrl.Finish()
 	sender.EXPECT().Send(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	notifier := &notifier{
-		wg:             &sync.WaitGroup{},
-		timeout:        1 * time.Millisecond,
-		interval:       1 * time.Millisecond,
-		repeatInterval: time.Hour,
-		ticker:         make(chan struct{}),
-		mailSender:     sender,
-		sitesMap:       make(map[string]*SiteNotification),
+		wg:                    &sync.WaitGroup{},
+		timeout:               1 * time.Millisecond,
+		interval:              1 * time.Millisecond,
+		repeatInterval:        time.Hour,
+		ticker:                make(chan struct{}),
+		mailSender:            sender,
+		sitesMap:              make(map[string]*SiteNotification),
+		siteRetentionInterval: time.Hour,
 	}
 	notifier.wg.Add(1)
 	go notifier.worker()
@@ -131,14 +133,15 @@ func TestNotifierSendMessageWithError(t *testing.T) {
 		return fmt.Errorf("some error")
 	}).Times(EXPECTED_CALLS)
 	notifier := &notifier{
-		wg:             &sync.WaitGroup{},
-		timeout:        1 * time.Millisecond,
-		interval:       1 * time.Millisecond,
-		repeatInterval: time.Hour,
-		ticker:         make(chan struct{}),
-		stop:           make(chan struct{}),
-		mailSender:     sender,
-		sitesMap:       make(map[string]*SiteNotification),
+		wg:                    &sync.WaitGroup{},
+		timeout:               1 * time.Millisecond,
+		interval:              1 * time.Millisecond,
+		repeatInterval:        time.Hour,
+		ticker:                make(chan struct{}),
+		stop:                  make(chan struct{}),
+		mailSender:            sender,
+		sitesMap:              make(map[string]*SiteNotification),
+		siteRetentionInterval: time.Hour,
 	}
 	notifier.wg.Add(1)
 	go notifier.worker()
@@ -158,14 +161,15 @@ func TestNotifierGotSuccessFirst(t *testing.T) {
 	defer ctrl.Finish()
 	sender.EXPECT().Send(gomock.Any(), gomock.Any()).Times(0)
 	notifier := &notifier{
-		wg:             &sync.WaitGroup{},
-		timeout:        1 * time.Millisecond,
-		interval:       1 * time.Millisecond,
-		repeatInterval: time.Hour,
-		ticker:         make(chan struct{}),
-		stop:           make(chan struct{}),
-		mailSender:     sender,
-		sitesMap:       make(map[string]*SiteNotification),
+		wg:                    &sync.WaitGroup{},
+		timeout:               1 * time.Millisecond,
+		interval:              1 * time.Millisecond,
+		repeatInterval:        time.Hour,
+		ticker:                make(chan struct{}),
+		stop:                  make(chan struct{}),
+		mailSender:            sender,
+		sitesMap:              make(map[string]*SiteNotification),
+		siteRetentionInterval: time.Hour,
 	}
 	notifier.wg.Add(1)
 	go notifier.worker()
@@ -185,14 +189,15 @@ func TestNotifierComplexBehaviour(t *testing.T) {
 	defer ctrl.Finish()
 	sender.EXPECT().Send(gomock.Any(), gomock.Any()).Times(3)
 	notifier := &notifier{
-		wg:             &sync.WaitGroup{},
-		timeout:        1 * time.Millisecond,
-		interval:       1 * time.Millisecond,
-		repeatInterval: time.Hour,
-		ticker:         make(chan struct{}),
-		stop:           make(chan struct{}),
-		mailSender:     sender,
-		sitesMap:       make(map[string]*SiteNotification),
+		wg:                    &sync.WaitGroup{},
+		timeout:               1 * time.Millisecond,
+		interval:              1 * time.Millisecond,
+		repeatInterval:        time.Hour,
+		ticker:                make(chan struct{}),
+		stop:                  make(chan struct{}),
+		mailSender:            sender,
+		sitesMap:              make(map[string]*SiteNotification),
+		siteRetentionInterval: time.Minute * 3,
 	}
 	notifier.wg.Add(1)
 	go notifier.worker()
@@ -215,14 +220,15 @@ func TestNotifierSendMoreThan1Message(t *testing.T) {
 	defer ctrl.Finish()
 	sender.EXPECT().Send(gomock.Any(), gomock.Any()).Times(1)
 	notifier := &notifier{
-		wg:             &sync.WaitGroup{},
-		timeout:        1 * time.Millisecond,
-		interval:       1 * time.Millisecond,
-		repeatInterval: time.Hour,
-		ticker:         make(chan struct{}),
-		stop:           make(chan struct{}),
-		mailSender:     sender,
-		sitesMap:       make(map[string]*SiteNotification),
+		wg:                    &sync.WaitGroup{},
+		timeout:               1 * time.Millisecond,
+		interval:              1 * time.Millisecond,
+		repeatInterval:        time.Hour,
+		ticker:                make(chan struct{}),
+		stop:                  make(chan struct{}),
+		mailSender:            sender,
+		sitesMap:              make(map[string]*SiteNotification),
+		siteRetentionInterval: time.Minute * 3,
 	}
 	notifier.wg.Add(1)
 	go notifier.worker()
@@ -246,14 +252,15 @@ func TestNotifierRepeatSend(t *testing.T) {
 	defer ctrl.Finish()
 	sender.EXPECT().Send(gomock.Any(), gomock.Any()).Times(3)
 	notifier := &notifier{
-		wg:             &sync.WaitGroup{},
-		timeout:        1 * time.Millisecond,
-		interval:       1 * time.Millisecond,
-		repeatInterval: time.Hour,
-		ticker:         make(chan struct{}),
-		mailSender:     sender,
-		stop:           make(chan struct{}),
-		sitesMap:       make(map[string]*SiteNotification),
+		wg:                    &sync.WaitGroup{},
+		timeout:               1 * time.Millisecond,
+		interval:              1 * time.Millisecond,
+		repeatInterval:        time.Hour,
+		ticker:                make(chan struct{}),
+		mailSender:            sender,
+		stop:                  make(chan struct{}),
+		sitesMap:              make(map[string]*SiteNotification),
+		siteRetentionInterval: 3 * time.Minute,
 	}
 	notifier.wg.Add(1)
 	go notifier.worker()
