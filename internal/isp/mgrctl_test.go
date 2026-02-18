@@ -10,33 +10,39 @@ import (
 )
 
 const (
-	webDomainLineTemplate = "id=%d name=%s owner=%s docroot=%s php=Path to PHP: /opt/php82/bin/php. php_mode=php_mode_mod php_version=8.2.29 (alt) handler=PHP Apache 8.2.29 (alt) active=%s analyzer=off ipaddr=%s webscript_status= database=db_not_assigned ssl_not_used="
+	webDomainLineTemplate = "id=%d name=%s owner=%s docroot=%s php=Path to PHP: /opt/php82/bin/php. php_mode=php_mode_mod php_version=8.2.29 (alt) handler=PHP Apache 8.2.29 (alt) active=%s analyzer=off ipaddr=%s webscript_status= database=db_not_assigned %s="
 )
 
 func TestGetWebDomain(t *testing.T) {
 	testCases := []struct {
-		name       string
-		id         int
-		domainName string
-		owner      string
-		docroot    string
-		ipAddr     string
+		name         string
+		id           int
+		domainName   string
+		owner        string
+		docroot      string
+		ipAddr       string
+		useSSL       bool
+		expectedPort string
 	}{
 		{
-			name:       "domain with digits",
-			id:         1,
-			domainName: "123owner.owner-oner.er",
-			owner:      "owner",
-			docroot:    "/var/www/owner/data/www/123owner.owner-oner.er",
-			ipAddr:     "127.0.0.1",
+			name:         "domain with digits",
+			id:           1,
+			domainName:   "123owner.owner-oner.er",
+			owner:        "owner",
+			docroot:      "/var/www/owner/data/www/123owner.owner-oner.er",
+			ipAddr:       "127.0.0.1",
+			useSSL:       false,
+			expectedPort: "80",
 		},
 		{
-			name:       "domain without digits",
-			id:         2,
-			domainName: "example.com",
-			owner:      "owner1",
-			docroot:    "/var/www/owner1/data/www/example.com",
-			ipAddr:     "192.23.3.3",
+			name:         "domain without digits",
+			id:           2,
+			domainName:   "example.com",
+			owner:        "owner1",
+			docroot:      "/var/www/owner1/data/www/example.com",
+			ipAddr:       "192.23.3.3",
+			useSSL:       true,
+			expectedPort: "443",
 		},
 	}
 
@@ -44,6 +50,11 @@ func TestGetWebDomain(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Mock mgrctl command
 			execCommand = func(path string, args ...string) *exec.Cmd {
+				sslStr := "ssl_not_used"
+				if tc.useSSL {
+					sslStr = "ssl_issued_success"
+				}
+
 				result := fmt.Sprintf(
 					webDomainLineTemplate,
 					tc.id,
@@ -52,6 +63,7 @@ func TestGetWebDomain(t *testing.T) {
 					tc.docroot,
 					"on",
 					tc.ipAddr,
+					sslStr,
 				)
 
 				return exec.Command("echo", result)
@@ -94,6 +106,10 @@ func TestGetWebDomain(t *testing.T) {
 			if domain.IPAddr != tc.ipAddr {
 				t.Errorf("IPAddr: got %q, expected %q", domain.IPAddr, tc.ipAddr)
 			}
+
+			if domain.Port != tc.expectedPort {
+				t.Errorf("Port: got %q, expected %q", domain.Port, tc.expectedPort)
+			}
 		})
 	}
 }
@@ -109,6 +125,7 @@ func TestGetWebDomainThatNotActiveWillBeIgnored(t *testing.T) {
 			"/var/www/test",
 			"off",
 			"127.0.0.0.1",
+			"ssl_issued_success",
 		)
 
 		return exec.Command("echo", result)

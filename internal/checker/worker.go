@@ -26,7 +26,12 @@ func worker(ctx context.Context, wg *sync.WaitGroup, taskPipe <-chan *Task, resu
 
 			client := createClient(task.Connection.Addr, task.Connection.Port)
 
-			url := fmt.Sprintf("http://%s/", task.Site)
+			protocol := "http"
+			if task.Connection.Port == "443" {
+				protocol = "https"
+			}
+
+			url := fmt.Sprintf("%s://%s/", protocol, task.Site)
 
 			task.Result.Timestamp = time.Now()
 
