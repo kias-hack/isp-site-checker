@@ -2,6 +2,7 @@ package checker
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"net/http"
 	"time"
@@ -10,6 +11,9 @@ import (
 func createClient(host string, port string) *http.Client {
 	transport := &http.Transport{
 		DisableKeepAlives: true,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			return (&net.Dialer{
 				Timeout: 10 * time.Second,
