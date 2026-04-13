@@ -2,6 +2,7 @@ package checker
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"net/http"
 	"time"
@@ -15,6 +16,9 @@ func createClient(host string, port string) *http.Client {
 				Timeout: 10 * time.Second,
 				// KeepAlive: 10 * time.Second,
 			}).DialContext(ctx, network, net.JoinHostPort(host, port))
+		},
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
 		},
 	}
 

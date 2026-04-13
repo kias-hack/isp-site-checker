@@ -106,12 +106,12 @@ func (n *notifier) Fail(site string, message string) {
 	siteInfo := n.getSite(site)
 
 	siteInfo.LastUpdated = time.Now()
+	siteInfo.Message = message
 
 	if siteInfo.Status != Fail {
 		slog.Info("site returned invalid response", "site", site)
 
 		siteInfo.NeedNotify = true
-		siteInfo.Message = message
 		siteInfo.Status = Fail
 	}
 }
